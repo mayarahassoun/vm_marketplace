@@ -42,10 +42,9 @@ resource "hcs_ecs_compute_instance" "vm" {
 
 
 
-# --- Add these lines ---
-  system_disk_type = "SSD"   # Common types: SAS, SSD, or GPSSD
-  system_disk_size = 20      # Minimum size usually depends on the image (try 40 or 100)
-  # -----------------------
+system_disk_type = var.system_disk_type
+system_disk_size = var.system_disk_size
+ 
 
   network {
     uuid = var.subnet_id

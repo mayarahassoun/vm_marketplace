@@ -27,3 +27,13 @@ variable "administrator_password" {
 variable "subnet_id" {
   type = string
 }
+variable "system_disk_type" {
+  type = string
+}
+
+variable "system_disk_size" {
+  type = number
+}
+variable "target_subnet_cidr" {
+  type = string
+}
