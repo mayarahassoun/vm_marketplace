@@ -34,6 +34,3 @@ variable "system_disk_type" {
 variable "system_disk_size" {
   type = number
 }
-variable "target_subnet_cidr" {
-  type = string
-}

@@ -35,7 +35,7 @@ def run_terraform(vm_data: dict) -> dict:
             "instance_image_id": vm_data["instance_image_id"],
             "security_group_id": vm_data["security_group_id"],
             "administrator_password": vm_data["administrator_password"],
-            "target_subnet_cidr": vm_data["target_subnet_cidr"],
+            "subnet_id": vm_data["subnet_id"],
             "system_disk_type": vm_data["system_disk_type"],
             "system_disk_size": vm_data["system_disk_size"],
         }

@@ -22,7 +22,7 @@ def create_vm(payload: VMCreateRequest, db: Session = Depends(get_db)):
             flavor_id=payload.instance_flavor_id,
             image_id=payload.instance_image_id,
             security_group_id=payload.security_group_id,
-            subnet_cidr=payload.target_subnet_cidr,
+            subnet_cidr=payload.subnet_id,
             system_disk_type=payload.system_disk_type,
             system_disk_size=payload.system_disk_size,
         )

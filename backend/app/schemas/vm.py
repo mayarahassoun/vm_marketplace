@@ -9,7 +9,7 @@ class VMCreateRequest(BaseModel):
     instance_flavor_id: str
     instance_image_id: str
     security_group_id: str
-    target_subnet_cidr: str
+    subnet_id: str
     administrator_password: str = Field(..., min_length=8)
     system_disk_type: str
     system_disk_size: int = Field(..., ge=1)
