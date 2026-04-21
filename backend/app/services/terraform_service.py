@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 TERRAFORM_SOURCE_DIR = Path(
-    r"C:\Users\m50057099\Documents\Github\vm_marketplace\terraform_test"
+    os.getenv("TERRAFORM_DIR", str(Path(__file__).resolve().parents[3] / "terraform_test"))
 )
 
 

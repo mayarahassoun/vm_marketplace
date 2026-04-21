@@ -1,42 +1,32 @@
 from dotenv import load_dotenv
 load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api import auth
 from app.api.vm import router as vm_router
 from app.db.session import Base, engine
-from app.models.virtual_machine import VirtualMachine
-from fastapi import FastAPI
-from dotenv import load_dotenv
-from app.api.vm import router as vm_router
+from app.models import user, virtual_machine  # ensure models are registered
 
-
-load_dotenv()
-
+# Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-app.include_router(vm_router)
-
-Base.metadata.create_all(bind=engine)
-
-app = FastAPI()
-
-# Ajouter CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # ton frontend
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],  # autorise POST, GET, OPTIONS…
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers
 app.include_router(auth.router, prefix="/api")
+app.include_router(vm_router)
 
 @app.get("/")
 def root():
     return {"message": "VM Marketplace API is running"}
-
-
-app.include_router(vm_router)
