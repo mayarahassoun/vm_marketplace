@@ -64,3 +64,12 @@ output "selected_flavor_id" {
 output "vm_id" {
   value = hcs_ecs_compute_instance.vm.id
 }
+
+resource "hcs_vpc_eip_associate" "eip_associate" {
+  public_ip  = var.eip_address
+  port_id    = hcs_ecs_compute_instance.vm.network[0].port
+}
+
+output "public_ip" {
+  value = var.eip_address
+}

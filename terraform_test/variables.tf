@@ -41,3 +41,7 @@ variable "availability_zone" {
 variable "instance_flavor_id" {
   type = string
 }
+variable "eip_address" {
+  type    = string
+  default = "193.95.31.98"
+}
