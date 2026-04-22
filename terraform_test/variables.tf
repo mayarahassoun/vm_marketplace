@@ -34,3 +34,10 @@ variable "system_disk_type" {
 variable "system_disk_size" {
   type = number
 }
+variable "availability_zone" {
+  type = string
+}
+
+variable "instance_flavor_id" {
+  type = string
+}
