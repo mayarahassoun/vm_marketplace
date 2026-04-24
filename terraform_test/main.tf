@@ -17,7 +17,6 @@ provider "hcs" {
 }
 
 data "hcs_availability_zones" "zones" {}
-
 data "hcs_ecs_compute_flavors" "all" {}
 
 locals {
@@ -32,20 +31,14 @@ locals {
 }
 
 resource "hcs_ecs_compute_instance" "vm" {
-  name              = var.instance_name
-  availability_zone = local.selected_az
-
-  flavor_id = local.selected_flavor_id
-  image_id  = trimspace(var.instance_image_id)
-  delete_eip_on_termination = false 
-
-  security_group_ids = [var.security_group_id]
-
-
-
-system_disk_type = var.system_disk_type
-system_disk_size = var.system_disk_size
- 
+  name                      = var.instance_name
+  availability_zone         = local.selected_az
+  flavor_id                 = local.selected_flavor_id
+  image_id                  = trimspace(var.instance_image_id)
+  delete_eip_on_termination = false
+  security_group_ids        = [var.security_group_id]
+  system_disk_type          = var.system_disk_type
+  system_disk_size          = var.system_disk_size
 
   network {
     uuid = var.subnet_id
@@ -53,6 +46,23 @@ system_disk_size = var.system_disk_size
 
   admin_pass = var.administrator_password
 }
+
+resource "hcs_vpc_eip" "eip" {
+  publicip {
+    type = "External-01"
+  }
+  bandwidth {
+    name       = "bw-${var.instance_name}"
+    size       = 5
+    share_type = "PER"
+  }
+}
+
+resource "hcs_vpc_eip_associate" "eip_associate" {
+  public_ip = hcs_vpc_eip.eip.address
+  port_id   = hcs_ecs_compute_instance.vm.network[0].port
+}
+
 
 output "selected_az" {
   value = local.selected_az
@@ -66,11 +76,6 @@ output "vm_id" {
   value = hcs_ecs_compute_instance.vm.id
 }
 
-resource "hcs_vpc_eip_associate" "eip_associate" {
-  public_ip  = var.eip_address
-  port_id    = hcs_ecs_compute_instance.vm.network[0].port
-}
-
 output "public_ip" {
-  value = var.eip_address
+  value = hcs_vpc_eip.eip.address
 }

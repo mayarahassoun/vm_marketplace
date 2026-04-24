@@ -8,9 +8,8 @@ TERRAFORM_SOURCE_DIR = Path(
     os.getenv("TERRAFORM_DIR", str(Path(__file__).resolve().parents[3] / "terraform_test"))
 )
 
-# Dossier fixe pour éviter le re-téléchargement du provider à chaque fois
-TERRAFORM_WORK_DIR = Path(
-    os.getenv("TERRAFORM_WORK_DIR", str(Path(__file__).resolve().parents[3] / "terraform_work"))
+TERRAFORM_STATES_DIR = Path(
+    os.getenv("TERRAFORM_STATES_DIR", str(Path(__file__).resolve().parents[3] / "terraform_states"))
 )
 
 
@@ -18,16 +17,18 @@ def run_terraform(vm_data: dict) -> dict:
     if not TERRAFORM_SOURCE_DIR.exists():
         raise FileNotFoundError(f"Terraform directory not found: {TERRAFORM_SOURCE_DIR}")
 
-    # Crée le dossier de travail s'il n'existe pas
-    TERRAFORM_WORK_DIR.mkdir(parents=True, exist_ok=True)
+    # Dossier unique par VM basé sur le nom
+    vm_name = vm_data["instance_name"]
+    working_dir = TERRAFORM_STATES_DIR / vm_name
+    working_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copie uniquement les fichiers .tf et pas le dossier .terraform
+    # Copie uniquement les fichiers .tf
     for tf_file in TERRAFORM_SOURCE_DIR.glob("*.tf"):
-        shutil.copy2(tf_file, TERRAFORM_WORK_DIR / tf_file.name)
+        shutil.copy2(tf_file, working_dir / tf_file.name)
 
-    tf_files = list(TERRAFORM_WORK_DIR.glob("*.tf"))
+    tf_files = list(working_dir.glob("*.tf"))
     if not tf_files:
-        raise FileNotFoundError(f"No .tf files found in: {TERRAFORM_WORK_DIR}")
+        raise FileNotFoundError(f"No .tf files found in: {working_dir}")
 
     terraform_vars = {
         "access_key": os.getenv("HCS_ACCESS_KEY"),
@@ -41,19 +42,18 @@ def run_terraform(vm_data: dict) -> dict:
         "subnet_id": vm_data["subnet_id"],
         "system_disk_type": vm_data["system_disk_type"],
         "system_disk_size": vm_data["system_disk_size"],
-        "eip_address": os.getenv("HCS_EIP_ADDRESS", "193.95.31.98"),
     }
 
     missing = [k for k, v in terraform_vars.items() if v in (None, "", [])]
     if missing:
         raise ValueError(f"Missing Terraform variables: {missing}")
 
-    (TERRAFORM_WORK_DIR / "terraform.auto.tfvars.json").write_text(
+    (working_dir / "terraform.auto.tfvars.json").write_text(
         json.dumps(terraform_vars, indent=2), encoding="utf-8"
     )
 
     commands = [
-        ["terraform", "init", "-upgrade"],
+        ["terraform", "init"],
         ["terraform", "apply", "-auto-approve"],
         ["terraform", "output", "-json"],
     ]
@@ -62,7 +62,7 @@ def run_terraform(vm_data: dict) -> dict:
     for cmd in commands:
         result = subprocess.run(
             cmd,
-            cwd=TERRAFORM_WORK_DIR,
+            cwd=working_dir,
             capture_output=True,
             text=True,
             shell=False,
@@ -90,3 +90,26 @@ def run_terraform(vm_data: dict) -> dict:
         "public_ip": public_ip,
         "terraform_outputs": outputs,
     }
+
+
+def destroy_terraform(vm_name: str) -> None:
+    working_dir = TERRAFORM_STATES_DIR / vm_name
+
+    if not working_dir.exists():
+        raise FileNotFoundError(f"Terraform state not found for VM: {vm_name}")
+
+    result = subprocess.run(
+        ["terraform", "destroy", "-auto-approve"],
+        cwd=working_dir,
+        capture_output=True,
+        text=True,
+        shell=False,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Terraform destroy failed:\n{result.stdout}\n{result.stderr}"
+        )
+
+    # Supprime le dossier après destroy
+    shutil.rmtree(working_dir, ignore_errors=True)
