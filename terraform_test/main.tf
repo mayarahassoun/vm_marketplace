@@ -37,6 +37,7 @@ resource "hcs_ecs_compute_instance" "vm" {
 
   flavor_id = local.selected_flavor_id
   image_id  = trimspace(var.instance_image_id)
+  delete_eip_on_termination = false 
 
   security_group_ids = [var.security_group_id]
 

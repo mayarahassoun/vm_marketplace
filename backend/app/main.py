@@ -9,7 +9,9 @@ from app.api.vm import router as vm_router
 from app.db.session import Base, engine
 from app.models import user, virtual_machine  # ensure models are registered
 from app.api.ssh import router as ssh_router
-    
+from app.api.payment import router as payment_router
+
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -35,3 +37,4 @@ def root():
 
 # Avec les autres routers
 app.include_router(ssh_router)
+app.include_router(payment_router)
