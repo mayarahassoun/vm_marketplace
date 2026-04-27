@@ -2,6 +2,9 @@ import json
 import os
 import shutil
 import subprocess
+import time
+import threading
+import paramiko
 from pathlib import Path
 
 TERRAFORM_SOURCE_DIR = Path(
@@ -13,16 +16,100 @@ TERRAFORM_STATES_DIR = Path(
 )
 
 
+def install_netdata(public_ip: str, password: str, vm_id: int, max_retries: int = 10) -> bool:
+    """Installe Netdata sur la VM via SSH après sa création"""
+
+    print(f"⏳ Waiting 2 minutes for VM {vm_id} to be ready...")
+    time.sleep(120)
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    for attempt in range(max_retries):
+        try:
+            print(f"🔌 SSH attempt {attempt + 1}/{max_retries} to {public_ip}")
+            ssh.connect(
+                hostname=public_ip,
+                username="root",
+                password=password,
+                timeout=10,
+            )
+            print(f"✅ SSH connected to {public_ip}")
+            break
+        except Exception as e:
+            print(f"⚠️ SSH not ready yet: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(15)
+            else:
+                print(f"❌ Could not connect to {public_ip} after {max_retries} attempts")
+                return False
+
+    try:
+        # Fix Debian buster EOL repos
+        fix_repos_cmd = (
+            "echo 'deb http://archive.debian.org/debian buster main contrib non-free' > /etc/apt/sources.list && "
+            "echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >> /etc/apt/sources.list"
+        )
+        ssh.exec_command(fix_repos_cmd)
+        time.sleep(2)
+
+        # Install curl and netdata
+        install_cmd = (
+            "apt-get update -o Acquire::Check-Valid-Until=false -y && "
+            "apt-get install -y netdata 2>&1"
+        )
+
+        print(f"📦 Installing Netdata on {public_ip}...")
+        stdin, stdout, stderr = ssh.exec_command(install_cmd, timeout=300)
+        exit_status = stdout.channel.recv_exit_status()
+
+        if exit_status == 0:
+            print(f"✅ Netdata installed on {public_ip}")
+
+            # Fix bind to 0.0.0.0
+            fix_cmd = (
+                "echo '[global]' > /etc/netdata/netdata.conf && "
+                "echo '    bind to = 0.0.0.0' >> /etc/netdata/netdata.conf && "
+                "systemctl restart netdata"
+            )
+            ssh.exec_command(fix_cmd)
+            time.sleep(3)
+            print(f"✅ Netdata configured to listen on 0.0.0.0")
+
+            # Met à jour netdata_url en DB
+            from app.db.session import SessionLocal
+            db = SessionLocal()
+            try:
+                from app.models.virtual_machine import VirtualMachine
+                vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
+                if vm:
+                    vm.netdata_url = f"http://{public_ip}:19999"
+                    db.commit()
+                    print(f"✅ netdata_url saved in DB for VM {vm_id}")
+            finally:
+                db.close()
+
+            return True
+        else:
+            print(f"❌ Netdata install failed: {stderr.read().decode()}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Netdata install error: {e}")
+        return False
+
+    finally:
+        ssh.close()
+
+
 def run_terraform(vm_data: dict) -> dict:
     if not TERRAFORM_SOURCE_DIR.exists():
         raise FileNotFoundError(f"Terraform directory not found: {TERRAFORM_SOURCE_DIR}")
 
-    # Dossier unique par VM basé sur le nom
     vm_name = vm_data["instance_name"]
     working_dir = TERRAFORM_STATES_DIR / vm_name
     working_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copie uniquement les fichiers .tf
     for tf_file in TERRAFORM_SOURCE_DIR.glob("*.tf"):
         shutil.copy2(tf_file, working_dir / tf_file.name)
 
@@ -111,5 +198,4 @@ def destroy_terraform(vm_name: str) -> None:
             f"Terraform destroy failed:\n{result.stdout}\n{result.stderr}"
         )
 
-    # Supprime le dossier après destroy
     shutil.rmtree(working_dir, ignore_errors=True)

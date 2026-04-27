@@ -23,3 +23,5 @@ class VirtualMachine(Base):
     public_ip = Column(String(100), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    netdata_url = Column(String(255), nullable=True)
