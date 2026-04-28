@@ -49,3 +49,12 @@ __pycache__/
 *.db
 
 terraform_states/
+# Terraform
+terraform_work/
+terraform_states/
+terraform_test/terraform.tfvars
+terraform_test/*.tfstate
+terraform_test/*.tfstate.backup
+terraform_test/.terraform/
+**/.terraform/
+*.tfvars

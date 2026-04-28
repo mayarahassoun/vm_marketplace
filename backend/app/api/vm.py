@@ -6,12 +6,18 @@ from app.schemas.vm import VMCreateRequest, VMResponse
 from app.services.terraform_service import run_terraform, destroy_terraform, install_netdata
 from app.db.session import get_db
 from app.models.virtual_machine import VirtualMachine
+from app.models.user import User
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/api/vms", tags=["VMs"])
 
 
 @router.post("/create", response_model=VMResponse)
-def create_vm(payload: VMCreateRequest, db: Session = Depends(get_db)):
+def create_vm(
+    payload: VMCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ← JWT requis
+):
     try:
         result = run_terraform(payload.model_dump())
 
@@ -27,14 +33,13 @@ def create_vm(payload: VMCreateRequest, db: Session = Depends(get_db)):
             system_disk_type=payload.system_disk_type,
             system_disk_size=payload.system_disk_size,
             public_ip=result.get("public_ip"),
-            netdata_url=None,  # sera mis à jour après install Netdata
+            netdata_url=None,
         )
 
         db.add(vm)
         db.commit()
         db.refresh(vm)
 
-        # Lance Netdata install en background avec vm.id
         if result.get("public_ip"):
             threading.Thread(
                 target=install_netdata,
@@ -50,13 +55,20 @@ def create_vm(payload: VMCreateRequest, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[VMResponse])
-def list_vms(db: Session = Depends(get_db)):
+def list_vms(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ← JWT requis
+):
     vms = db.query(VirtualMachine).order_by(VirtualMachine.created_at.desc()).all()
     return vms
 
 
 @router.delete("/{vm_id}")
-def delete_vm(vm_id: int, db: Session = Depends(get_db)):
+def delete_vm(
+    vm_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ← JWT requis
+):
     vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
     if not vm:
         raise HTTPException(status_code=404, detail="VM not found")
@@ -74,7 +86,11 @@ def delete_vm(vm_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/{vm_id}/netdata")
-def update_netdata_url(vm_id: int, db: Session = Depends(get_db)):
+def update_netdata_url(
+    vm_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ← JWT requis
+):
     vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
     if not vm:
         raise HTTPException(status_code=404, detail="VM not found")
