@@ -2,27 +2,18 @@ import json
 import re
 import requests
 
-
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "phi3"
-
+OLLAMA_MODEL = "llama3.1"  # ← upgrade de phi3
 
 ALLOWED_VALUES = {
     "application_type": [
-        "web",
-        "ecommerce",
-        "database",
-        "ai",
-        "test",
-        "university_app",
-        "research",
-        "devops",
+        "web", "ecommerce", "database", "ai",
+        "test", "university_app", "research", "devops",
     ],
     "traffic_level": ["low", "medium", "high"],
     "budget": ["low", "medium", "high"],
     "performance_level": ["economic", "balanced", "performance"],
 }
-
 
 DEFAULT_VALUES = {
     "application_type": "web",
@@ -35,12 +26,10 @@ DEFAULT_VALUES = {
 
 
 def extract_json(text: str) -> dict:
-    match = re.search(r"\{[\s\S]*\}", text)
+    match = re.search(r"\{[\s\S]*?\}", text)
     if not match:
         return DEFAULT_VALUES.copy()
-
     raw_json = match.group(0)
-
     try:
         return json.loads(raw_json)
     except json.JSONDecodeError:
@@ -54,14 +43,14 @@ def extract_json(text: str) -> dict:
 
 def detect_users_from_original_text(user_text: str):
     text = user_text.lower()
-
     patterns = [
-        r"(\d{1,3}(?:[\s.,]?\d{3})+|\d+)\s*(utilisateurs|users|étudiants|etudiants)",
+        r"(\d{1,3}(?:[\s.,]?\d{3})+|\d+)\s*(utilisateurs|users|étudiants|etudiants|students|clients|visitors)",
         r"utilisée par\s+(\d{1,3}(?:[\s.,]?\d{3})+|\d+)",
-        r"utilisee par\s+(\d{1,3}(?:[\s.,]?\d{3})+|\d+)",
+        r"used by\s+(\d{1,3}(?:[\s.,]?\d{3})+|\d+)",
         r"pour\s+(\d{1,3}(?:[\s.,]?\d{3})+|\d+)",
+        r"for\s+(\d{1,3}(?:[\s.,]?\d{3})+|\d+)",
+        r"(\d{1,3}(?:[\s.,]?\d{3})+|\d+)\s*concurrent",
     ]
-
     for pattern in patterns:
         match = re.search(pattern, text)
         if match:
@@ -71,26 +60,21 @@ def detect_users_from_original_text(user_text: str):
                 return int(clean)
             except ValueError:
                 return None
-
     return None
 
 
 def validate_result(data: dict) -> dict:
     result = DEFAULT_VALUES.copy()
-
     for key in result:
         if key in data and data[key] is not None:
             result[key] = data[key]
 
     if result["application_type"] not in ALLOWED_VALUES["application_type"]:
         result["application_type"] = DEFAULT_VALUES["application_type"]
-
     if result["traffic_level"] not in ALLOWED_VALUES["traffic_level"]:
         result["traffic_level"] = DEFAULT_VALUES["traffic_level"]
-
     if result["budget"] not in ALLOWED_VALUES["budget"]:
         result["budget"] = DEFAULT_VALUES["budget"]
-
     if result["performance_level"] not in ALLOWED_VALUES["performance_level"]:
         result["performance_level"] = DEFAULT_VALUES["performance_level"]
 
@@ -108,72 +92,64 @@ def validate_result(data: dict) -> dict:
 
 
 def build_prompt(user_text: str) -> str:
-    return f"""
-You are an AI requirement extraction engine for a smart cloud VM marketplace.
+    return f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+You are a cloud infrastructure requirement extraction engine.
+Extract structured VM requirements from user requests.
+Return ONLY a valid JSON object. No explanation. No markdown. No extra text.
 
-Your task is to extract structured cloud workload requirements from the user's natural language request.
+Rules:
+- application_type: web | ecommerce | database | ai | test | university_app | research | devops
+- traffic_level: low | medium | high
+- budget: low | medium | high  
+- performance_level: economic | balanced | performance
+- expected_users: integer number
+- storage_need: integer in GB
 
-Return ONLY a valid JSON object. No explanation. No markdown.
+Semantic mapping:
+- shop/boutique/store/magasin → ecommerce
+- university/students/étudiants/campus → university_app
+- AI/ML/deep learning/neural/model training → ai
+- database/MySQL/PostgreSQL/MongoDB → database
+- CI/CD/DevOps/pipeline/Jenkins → devops
+- high performance/rapide/fast/critical → performance_level=performance
+- cheap/budget/économique/low cost → budget=low
+- no budget mentioned → budget=medium
 
-Allowed values:
-application_type: web, ecommerce, database, ai, test, university_app, research, devops
-traffic_level: low, medium, high
-budget: low, medium, high
-performance_level: economic, balanced, performance
-
-Important semantic rules:
-- "e-shop", "online shop", "boutique en ligne" mean ecommerce.
-- "university", "students", "étudiants", "plateforme universitaire" mean university_app.
-- "AI", "machine learning", "deep learning", "model training" mean ai.
-- "database", "base de données" mean database.
-- "CI/CD", "DevOps", "pipeline" mean devops.
-- If the user mentions high performance, performance élevée, rapidité, forte charge, set performance_level to performance.
-- If the user mentions low cost, petit budget, économique, set budget to low.
-- If the user gives no budget, use medium.
-- Estimate storage_need in GB.
-- If unsure, use reasonable values but keep the JSON valid.
-
-Expected JSON schema:
-{{
-  "application_type": "web",
-  "expected_users": 100,
-  "traffic_level": "medium",
-  "budget": "medium",
-  "performance_level": "balanced",
-  "storage_need": 60
-}}
-
-User request:
+<|eot_id|><|start_header_id|>user<|end_header_id|>
 {user_text}
-"""
+<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+{{"""
 
 
 def call_ollama(prompt: str) -> str:
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": 0.1,
-                "top_p": 0.9,
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.05,
+                    "top_p": 0.9,
+                    "stop": ["}"],
+                },
             },
-        },
-        timeout=60,
-    )
-
-    response.raise_for_status()
-    return response.json().get("response", "")
+            timeout=60,
+        )
+        response.raise_for_status()
+        raw = response.json().get("response", "")
+        return "{" + raw + "}"
+    except Exception as e:
+        print(f"⚠️ Ollama error: {e}")
+        return "{}"
 
 
 def parse_user_need(user_text: str) -> dict:
     prompt = build_prompt(user_text)
     llm_text = call_ollama(prompt)
 
-    print("\n===== RAW LLM RESPONSE =====")
-    print(llm_text)
-    print("===== END RAW LLM RESPONSE =====\n")
+    print(f"\n===== RAW LLM RESPONSE =====\n{llm_text}\n=====\n")
 
     raw_data = extract_json(llm_text)
     validated = validate_result(raw_data)
@@ -183,12 +159,3 @@ def parse_user_need(user_text: str) -> dict:
         validated["expected_users"] = detected_users
 
     return validated
-
-
-if __name__ == "__main__":
-    text = "Je veux une VM pour une application universitaire utilisée par 30000 étudiants."
-
-    result = parse_user_need(text)
-
-    print("\n===== FINAL PARSED RESULT =====")
-    print(json.dumps(result, indent=2, ensure_ascii=False))

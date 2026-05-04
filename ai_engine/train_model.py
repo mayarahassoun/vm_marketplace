@@ -1,14 +1,14 @@
 import os
 import pandas as pd
 import joblib
+import numpy as np
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
-
 
 DATASET_PATH = "dataset/vm_recommendation_dataset.csv"
 MODEL_PATH = "models/vm_recommender.pkl"
@@ -16,86 +16,60 @@ MODEL_PATH = "models/vm_recommender.pkl"
 os.makedirs("models", exist_ok=True)
 
 df = pd.read_csv(DATASET_PATH)
+print(f"✅ Dataset loaded: {len(df)} rows, {df['recommended_profile'].nunique()} profiles")
+print(f"Profile distribution:\n{df['recommended_profile'].value_counts()}\n")
 
-X = df[
-    [
-        "application_type",
-        "expected_users",
-        "traffic_level",
-        "budget",
-        "performance_level",
-        "storage_need",
-        "workload_score",
-        "resource_score",
-        "criticality_score",
-    ]
-]
-
+X = df[[
+    "application_type", "expected_users", "traffic_level",
+    "budget", "performance_level", "storage_need",
+    "workload_score", "resource_score", "criticality_score",
+]]
 y = df["recommended_profile"]
 
-categorical_features = [
-    "application_type",
-    "traffic_level",
-    "budget",
-    "performance_level",
-]
+categorical_features = ["application_type", "traffic_level", "budget", "performance_level"]
+numeric_features = ["expected_users", "storage_need", "workload_score", "resource_score", "criticality_score"]
 
-numeric_features = [
-    "expected_users",
-    "storage_need",
-    "workload_score",
-    "resource_score",
-    "criticality_score",
-]
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
-        ("num", "passthrough", numeric_features),
-    ]
-)
+preprocessor = ColumnTransformer(transformers=[
+    ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
+    ("num", "passthrough", numeric_features),
+])
 
 model = GradientBoostingClassifier(
-    n_estimators=150,
+    n_estimators=200,
     learning_rate=0.08,
-    max_depth=3,
+    max_depth=4,
+    min_samples_split=2,
     random_state=42,
 )
 
-pipeline = Pipeline(
-    steps=[
-        ("preprocessor", preprocessor),
-        ("model", model),
-    ]
-)
+pipeline = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("model", model),
+])
 
 if len(df) < 10:
-    raise ValueError("Dataset is too small. Please add more training examples.")
+    raise ValueError("Dataset too small. Add more training examples.")
+
+# Cross-validation
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+cv_scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy')
+print(f"📊 Cross-validation accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
 
 try:
     X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.25,
-        random_state=42,
-        stratify=y,
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
 except ValueError:
     X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.25,
-        random_state=42,
+        X, y, test_size=0.2, random_state=42
     )
 
 pipeline.fit(X_train, y_train)
-
 y_pred = pipeline.predict(X_test)
 
-print("Accuracy:", accuracy_score(y_test, y_pred))
+print(f"\n🎯 Test Accuracy: {accuracy_score(y_test, y_pred):.3f}")
 print("\nClassification Report:")
 print(classification_report(y_test, y_pred, zero_division=0))
 
 joblib.dump(pipeline, MODEL_PATH)
-
-print(f"\nModel saved successfully at: {MODEL_PATH}")
+print(f"\n✅ Model saved at: {MODEL_PATH}")

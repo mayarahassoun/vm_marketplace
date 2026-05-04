@@ -1,141 +1,122 @@
+import os
 import joblib
 import pandas as pd
+from scoring import compute_ai_scores
 
 MODEL_PATH = "models/vm_recommender.pkl"
 
 VM_PROFILES = {
-    "small": {
-        "flavor": "s2.small.1",
-        "cpu": 1,
-        "ram": 2,
-        "storage": 30,
-        "os": "Ubuntu 22.04",
-        "cost_level": "low"
+    # General Purpose
+    "gp_xs": {
+        "flavor_id": "s6.medium.2", "cpu": "1 vCPU", "ram": "2 GB",
+        "storage": 40, "storage_type": "SSD", "monthly_price": 10,
+        "category": "general", "use_case": "Testing, dev, personal projects"
     },
-    "medium": {
-        "flavor": "s2.medium.2",
-        "cpu": 2,
-        "ram": 4,
-        "storage": 60,
-        "os": "Ubuntu 22.04",
-        "cost_level": "medium"
+    "gp_s": {
+        "flavor_id": "s6.medium.4", "cpu": "1 vCPU", "ram": "4 GB",
+        "storage": 60, "storage_type": "SSD", "monthly_price": 15,
+        "category": "general", "use_case": "Small web apps, low traffic APIs"
     },
-    "large": {
-        "flavor": "s3.large.2",
-        "cpu": 4,
-        "ram": 8,
-        "storage": 120,
-        "os": "Ubuntu 22.04",
-        "cost_level": "medium-high"
+    "gp_m": {
+        "flavor_id": "s6.large.2", "cpu": "2 vCPUs", "ram": "4 GB",
+        "storage": 80, "storage_type": "SSD", "monthly_price": 20,
+        "category": "general", "use_case": "Medium web apps, moderate traffic"
     },
-    "xlarge": {
-        "flavor": "s3.xlarge.2",
-        "cpu": 8,
-        "ram": 16,
-        "storage": 200,
-        "os": "Ubuntu 22.04",
-        "cost_level": "high"
+    "gp_m2": {
+        "flavor_id": "s6.large.4", "cpu": "2 vCPUs", "ram": "8 GB",
+        "storage": 100, "storage_type": "Business_SSD", "monthly_price": 30,
+        "category": "general", "use_case": "Production apps, ecommerce, small databases"
     },
-    "database": {
-        "flavor": "m3.large.4",
-        "cpu": 4,
-        "ram": 16,
-        "storage": 300,
-        "os": "Ubuntu 22.04",
-        "cost_level": "high"
+    "gp_l": {
+        "flavor_id": "s6.xlarge.2", "cpu": "4 vCPUs", "ram": "8 GB",
+        "storage": 150, "storage_type": "Business_SSD", "monthly_price": 40,
+        "category": "general", "use_case": "High traffic apps, CI/CD, DevOps"
     },
-    "high-performance": {
-        "flavor": "c3.xlarge.4",
-        "cpu": 8,
-        "ram": 32,
-        "storage": 300,
-        "os": "Ubuntu 22.04",
-        "cost_level": "high"
-    }
+    "gp_l2": {
+        "flavor_id": "s6.xlarge.4", "cpu": "4 vCPUs", "ram": "16 GB",
+        "storage": 200, "storage_type": "Business_SSD", "monthly_price": 60,
+        "category": "general", "use_case": "Large web apps, university platforms"
+    },
+    "gp_xl": {
+        "flavor_id": "s6.2xlarge.2", "cpu": "8 vCPUs", "ram": "16 GB",
+        "storage": 200, "storage_type": "Business_SSD", "monthly_price": 80,
+        "category": "general", "use_case": "High load apps, large ecommerce"
+    },
+    "gp_xl2": {
+        "flavor_id": "s6.2xlarge.4", "cpu": "8 vCPUs", "ram": "32 GB",
+        "storage": 300, "storage_type": "Business_SSD", "monthly_price": 120,
+        "category": "general", "use_case": "Critical production, large databases"
+    },
+    "gp_xxl": {
+        "flavor_id": "s6.4xlarge.2", "cpu": "16 vCPUs", "ram": "32 GB",
+        "storage": 400, "storage_type": "Business_SSD", "monthly_price": 200,
+        "category": "general", "use_case": "Enterprise apps, massive scale"
+    },
+    # Memory Optimized
+    "mem_s": {
+        "flavor_id": "m6.large.8", "cpu": "2 vCPUs", "ram": "16 GB",
+        "storage": 100, "storage_type": "Business_SSD", "monthly_price": 50,
+        "category": "memory", "use_case": "Relational databases, Redis, caching"
+    },
+    "mem_m": {
+        "flavor_id": "m6.xlarge.8", "cpu": "4 vCPUs", "ram": "32 GB",
+        "storage": 200, "storage_type": "Business_SSD", "monthly_price": 100,
+        "category": "memory", "use_case": "Large databases, NoSQL, data processing"
+    },
+    "mem_l": {
+        "flavor_id": "m6.2xlarge.8", "cpu": "8 vCPUs", "ram": "64 GB",
+        "storage": 300, "storage_type": "Business_SSD", "monthly_price": 200,
+        "category": "memory", "use_case": "Enterprise databases, big data"
+    },
+    "mem_xl": {
+        "flavor_id": "m6.4xlarge.8", "cpu": "16 vCPUs", "ram": "128 GB",
+        "storage": 500, "storage_type": "Business_SSD", "monthly_price": 400,
+        "category": "memory", "use_case": "Critical databases, in-memory computing"
+    },
+    # GPU
+    "gpu_s": {
+        "flavor_id": "p2s.2xlarge.8", "cpu": "8 vCPUs", "ram": "64 GB",
+        "storage": 300, "storage_type": "Business_SSD", "monthly_price": 500,
+        "category": "gpu", "use_case": "AI training, deep learning, image classification"
+    },
+    "gpu_m": {
+        "flavor_id": "p2s.4xlarge.8", "cpu": "16 vCPUs", "ram": "32 GB",
+        "storage": 400, "storage_type": "Business_SSD", "monthly_price": 800,
+        "category": "gpu", "use_case": "Large AI models, NLP, autonomous driving"
+    },
+    "gpu_l": {
+        "flavor_id": "p2s.8xlarge.8", "cpu": "32 vCPUs", "ram": "64 GB",
+        "storage": 500, "storage_type": "Business_SSD", "monthly_price": 1500,
+        "category": "gpu", "use_case": "Heavy ML training, scientific computing"
+    },
 }
 
 
-def compute_ai_scores(application_type, expected_users, traffic_level, budget, performance_level, storage_need):
-    expected_users = int(expected_users)
-    storage_need = int(storage_need)
+def recommend_vm(application_type, expected_users, traffic_level,
+                 budget, performance_level, storage_need):
 
-    if expected_users <= 100:
-        user_score = 1
-    elif expected_users <= 500:
-        user_score = 3
-    elif expected_users <= 2000:
-        user_score = 6
-    elif expected_users <= 5000:
-        user_score = 8
-    else:
-        user_score = 10
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(
+            f"Model not found at {MODEL_PATH}. Run: python train_model.py"
+        )
 
-    traffic_score = {
-        "low": 1,
-        "medium": 5,
-        "high": 9
-    }.get(traffic_level, 5)
-
-    performance_score = {
-        "economic": 2,
-        "balanced": 5,
-        "performance": 9
-    }.get(performance_level, 5)
-
-    storage_score = min(10, max(1, storage_need // 30))
-
-    application_weight = {
-        "test": 0.6,
-        "web": 1.0,
-        "university_app": 1.1,
-        "devops": 1.2,
-        "ecommerce": 1.4,
-        "research": 1.5,
-        "database": 1.6,
-        "ai": 1.8
-    }.get(application_type, 1.0)
-
-    workload_score = round(((user_score * 0.5) + (traffic_score * 0.3) + (performance_score * 0.2)) * application_weight)
-    workload_score = min(10, max(1, workload_score))
-
-    resource_score = round((performance_score * 0.4) + (storage_score * 0.3) + (user_score * 0.3))
-    resource_score = min(10, max(1, resource_score))
-
-    criticality_score = round((workload_score * 0.5) + (resource_score * 0.3) + (performance_score * 0.2))
-    criticality_score = min(10, max(1, criticality_score))
-
-    return workload_score, resource_score, criticality_score
-
-
-def recommend_vm(
-    application_type,
-    expected_users,
-    traffic_level,
-    budget,
-    performance_level,
-    storage_need
-):
     model = joblib.load(MODEL_PATH)
 
-    workload_score, resource_score, criticality_score = compute_ai_scores(
-        application_type,
-        expected_users,
-        traffic_level,
-        budget,
-        performance_level,
-        storage_need
+    scores = compute_ai_scores(
+        application_type, expected_users,
+        traffic_level, performance_level, storage_need
     )
 
     input_data = pd.DataFrame([{
         "application_type": application_type,
-        "expected_users": expected_users,
+        "expected_users": int(expected_users),
         "traffic_level": traffic_level,
         "budget": budget,
         "performance_level": performance_level,
-        "storage_need": storage_need,
-        "workload_score": workload_score,
-        "resource_score": resource_score,
-        "criticality_score": criticality_score,
+        "storage_need": int(storage_need),
+        "workload_score": scores["workload_score"],
+        "resource_score": scores["resource_score"],
+        "criticality_score": scores["criticality_score"],
     }])
 
     predicted_profile = model.predict(input_data)[0]
@@ -147,33 +128,19 @@ def recommend_vm(
         for i in range(len(classes))
     }
 
-    vm_config = VM_PROFILES.get(predicted_profile)
+    vm_config = VM_PROFILES.get(predicted_profile, VM_PROFILES["gp_s"])
 
     return {
         "recommended_profile": predicted_profile,
         "configuration": vm_config,
-        "ai_scores": {
-            "workload_score": workload_score,
-            "resource_score": resource_score,
-            "criticality_score": criticality_score
-        },
+        "ai_scores": scores,
         "confidence_scores": confidence_scores,
         "explanation": (
-            f"The recommendation is generated using an AI scoring engine and a supervised ML model. "
-            f"The workload score is {workload_score}/10, the resource score is {resource_score}/10, "
-            f"and the criticality score is {criticality_score}/10."
+            f"Based on your {application_type} application with {expected_users} users, "
+            f"workload score {scores['workload_score']}/10, "
+            f"resource score {scores['resource_score']}/10, "
+            f"criticality {scores['criticality_score']}/10. "
+            f"Recommended: {vm_config['flavor_id']} "
+            f"({vm_config['cpu']}, {vm_config['ram']}) — {vm_config['use_case']}."
         )
     }
-
-
-if __name__ == "__main__":
-    result = recommend_vm(
-        application_type="ecommerce",
-        expected_users=10000,
-        traffic_level="high",
-        budget="medium",
-        performance_level="performance",
-        storage_need=250
-    )
-
-    print(result)
