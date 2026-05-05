@@ -1,17 +1,16 @@
 import os
 import pandas as pd
 import joblib
-import numpy as np
 
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
 DATASET_PATH = "dataset/vm_recommendation_dataset.csv"
-MODEL_PATH = "models/vm_recommender.pkl"
+MODEL_PATH   = "models/vm_recommender.pkl"
 
 os.makedirs("models", exist_ok=True)
 
@@ -19,15 +18,21 @@ df = pd.read_csv(DATASET_PATH)
 print(f"✅ Dataset loaded: {len(df)} rows, {df['recommended_profile'].nunique()} profiles")
 print(f"Profile distribution:\n{df['recommended_profile'].value_counts()}\n")
 
+# FIX: app_weight et budget_score ajoutés comme features discriminantes
 X = df[[
     "application_type", "expected_users", "traffic_level",
     "budget", "performance_level", "storage_need",
     "workload_score", "resource_score", "criticality_score",
+    "app_weight", "budget_score",
 ]]
 y = df["recommended_profile"]
 
 categorical_features = ["application_type", "traffic_level", "budget", "performance_level"]
-numeric_features = ["expected_users", "storage_need", "workload_score", "resource_score", "criticality_score"]
+numeric_features     = [
+    "expected_users", "storage_need",
+    "workload_score", "resource_score", "criticality_score",
+    "app_weight", "budget_score",
+]
 
 preprocessor = ColumnTransformer(transformers=[
     ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_features),
@@ -35,9 +40,9 @@ preprocessor = ColumnTransformer(transformers=[
 ])
 
 model = GradientBoostingClassifier(
-    n_estimators=200,
-    learning_rate=0.08,
-    max_depth=4,
+    n_estimators=300,
+    learning_rate=0.05,
+    max_depth=5,
     min_samples_split=2,
     random_state=42,
 )
@@ -47,19 +52,16 @@ pipeline = Pipeline(steps=[
     ("model", model),
 ])
 
-if len(df) < 10:
-    raise ValueError("Dataset too small. Add more training examples.")
-
-# Cross-validation
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy')
+cv_scores = cross_val_score(pipeline, X, y, cv=cv, scoring="accuracy")
 print(f"📊 Cross-validation accuracy: {cv_scores.mean():.3f} (+/- {cv_scores.std():.3f})")
 
 try:
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
-except ValueError:
+except ValueError as e:
+    print(f"⚠️  Stratified split failed ({e}), using random split.")
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )

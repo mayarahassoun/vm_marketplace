@@ -2,46 +2,61 @@ import json
 import re
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.1"  # ← upgrade de phi3
+OLLAMA_URL   = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.1"
 
 ALLOWED_VALUES = {
     "application_type": [
         "web", "ecommerce", "database", "ai",
         "test", "university_app", "research", "devops",
     ],
-    "traffic_level": ["low", "medium", "high"],
-    "budget": ["low", "medium", "high"],
+    "traffic_level":    ["low", "medium", "high"],
+    "budget":           ["low", "medium", "high"],
     "performance_level": ["economic", "balanced", "performance"],
 }
 
 DEFAULT_VALUES = {
     "application_type": "web",
-    "expected_users": 100,
-    "traffic_level": "medium",
-    "budget": "medium",
+    "expected_users":   100,
+    "traffic_level":    "medium",
+    "budget":           "medium",
     "performance_level": "balanced",
-    "storage_need": 60,
+    "storage_need":     60,
 }
 
 
 def extract_json(text: str) -> dict:
-    match = re.search(r"\{[\s\S]*?\}", text)
-    if not match:
+    """
+    FIX: Extraire le premier objet JSON complet (avec accolades équilibrées)
+    au lieu de s'arrêter au premier `}` via le stop token.
+    """
+    start = text.find("{")
+    if start == -1:
         return DEFAULT_VALUES.copy()
-    raw_json = match.group(0)
-    try:
-        return json.loads(raw_json)
-    except json.JSONDecodeError:
-        cleaned = raw_json.replace("'", '"')
-        cleaned = re.sub(r",\s*}", "}", cleaned)
-        try:
-            return json.loads(cleaned)
-        except json.JSONDecodeError:
-            return DEFAULT_VALUES.copy()
+
+    depth = 0
+    for i, ch in enumerate(text[start:], start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                raw_json = text[start:i + 1]
+                try:
+                    return json.loads(raw_json)
+                except json.JSONDecodeError:
+                    # Tentative de nettoyage
+                    cleaned = raw_json.replace("'", '"')
+                    cleaned = re.sub(r",\s*}", "}", cleaned)
+                    try:
+                        return json.loads(cleaned)
+                    except json.JSONDecodeError:
+                        return DEFAULT_VALUES.copy()
+
+    return DEFAULT_VALUES.copy()
 
 
-def detect_users_from_original_text(user_text: str):
+def detect_users_from_original_text(user_text: str) -> int | None:
     text = user_text.lower()
     patterns = [
         r"(\d{1,3}(?:[\s.,]?\d{3})+|\d+)\s*(utilisateurs|users|étudiants|etudiants|students|clients|visitors)",
@@ -86,7 +101,24 @@ def validate_result(data: dict) -> dict:
     try:
         result["storage_need"] = int(result["storage_need"])
     except (TypeError, ValueError):
-        result["storage_need"] = DEFAULT_VALUES["storage_need"]
+        result["storage_need"] = 0
+
+    # FIX: plafonner le storage LLM — le LLM hallucine souvent des valeurs absurdes
+    # Le reasoner calculera la vraie valeur depuis le type d'app + users
+    MAX_STORAGE_PER_TYPE = {
+        "test": 100, "web": 400, "university_app": 300,
+        "ecommerce": 400, "database": 600, "ai": 500,
+        "research": 500, "devops": 300,
+    }
+    app_type = result.get("application_type", "web")
+    max_storage = MAX_STORAGE_PER_TYPE.get(app_type, 400)
+
+    if result["storage_need"] > max_storage:
+        # Valeur hallucinée → on laisse le reasoner décider
+        result["storage_need"] = 0
+
+    if result["storage_need"] <= 0:
+        result["storage_need"] = 0  # reasoner corrigera
 
     return result
 
@@ -118,10 +150,15 @@ Semantic mapping:
 <|eot_id|><|start_header_id|>user<|end_header_id|>
 {user_text}
 <|eot_id|><|start_header_id|>assistant<|end_header_id|>
-{{"""
+"""
 
 
-def call_ollama(prompt: str) -> str:
+def call_ollama(prompt: str) -> tuple[str, bool]:
+    """
+    FIX: Retourne (texte, llm_used).
+    - Stop tokens corrigés: plus de `}}` qui coupe le JSON prématurément.
+    - Timeout augmenté, erreurs loggées clairement.
+    """
     try:
         response = requests.post(
             OLLAMA_URL,
@@ -132,30 +169,41 @@ def call_ollama(prompt: str) -> str:
                 "options": {
                     "temperature": 0.05,
                     "top_p": 0.9,
-                    "stop": ["}"],
+                    # FIX: stop tokens qui ne cassent plus le JSON
+                    "stop": ["<|eot_id|>", "<|start_header_id|>"],
                 },
             },
             timeout=60,
         )
         response.raise_for_status()
-        raw = response.json().get("response", "")
-        return "{" + raw + "}"
+        raw = response.json().get("response", "").strip()
+        return raw, True
+    except requests.exceptions.ConnectionError:
+        print("⚠️  Ollama not running at", OLLAMA_URL, "— using default values")
+        return "{}", False
+    except requests.exceptions.Timeout:
+        print("⚠️  Ollama timeout — using default values")
+        return "{}", False
     except Exception as e:
-        print(f"⚠️ Ollama error: {e}")
-        return "{}"
+        print(f"⚠️  Ollama error: {e}")
+        return "{}", False
 
 
 def parse_user_need(user_text: str) -> dict:
-    prompt = build_prompt(user_text)
-    llm_text = call_ollama(prompt)
+    prompt   = build_prompt(user_text)
+    llm_text, llm_used = call_ollama(prompt)
 
     print(f"\n===== RAW LLM RESPONSE =====\n{llm_text}\n=====\n")
 
-    raw_data = extract_json(llm_text)
+    raw_data  = extract_json(llm_text)
     validated = validate_result(raw_data)
 
+    # Regex override: toujours prioritaire sur le LLM pour les chiffres
     detected_users = detect_users_from_original_text(user_text)
     if detected_users is not None:
         validated["expected_users"] = detected_users
+
+    # FIX: flag pour informer l'API si le LLM était disponible
+    validated["_llm_used"] = llm_used
 
     return validated
