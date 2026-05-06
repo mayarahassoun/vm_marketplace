@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.db.session import get_db, SessionLocal
+from app.models.user import User
+from app.core.security import get_current_user
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 resend.api_key = os.getenv("RESEND_API_KEY")
@@ -30,7 +32,10 @@ class PaymentRequest(BaseModel):
 
 
 @router.post("/pay-and-create")
-def pay_and_create_vm(payload: PaymentRequest):
+def pay_and_create_vm(
+    payload: PaymentRequest,
+    current_user: User = Depends(get_current_user),
+):
     try:
         intent = stripe.PaymentIntent.create(
             amount=payload.amount,
@@ -42,8 +47,10 @@ def pay_and_create_vm(payload: PaymentRequest):
                 "allow_redirects": "never",
             },
         )
+
     except stripe.error.CardError as e:
         raise HTTPException(status_code=400, detail=str(e.user_message))
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -51,6 +58,7 @@ def pay_and_create_vm(payload: PaymentRequest):
         raise HTTPException(status_code=400, detail="Payment failed")
 
     session_id = str(uuid.uuid4())
+
     progress_store[session_id] = {
         "steps": [
             {"id": 1, "label": "Verifying Payment", "status": "complete"},
@@ -62,18 +70,24 @@ def pay_and_create_vm(payload: PaymentRequest):
         "progress": 20,
         "done": False,
         "error": None,
+        "vm_data": payload.vm_data,
+        "user_id": current_user.id,
     }
 
     threading.Thread(
         target=create_vm_background,
-        args=(session_id, payload),
-        daemon=True
+        args=(session_id, payload, current_user.id),
+        daemon=True,
     ).start()
 
     return {"session_id": session_id}
 
 
-def create_vm_background(session_id: str, payload: PaymentRequest):
+def create_vm_background(
+    session_id: str,
+    payload: PaymentRequest,
+    user_id: int,
+):
     store = progress_store[session_id]
 
     def update(step_id: int, status: str, progress: int):
@@ -90,7 +104,9 @@ def create_vm_background(session_id: str, payload: PaymentRequest):
         update(2, "complete", 40)
 
         update(3, "in_progress", 50)
+
         from app.services.terraform_service import run_terraform, install_netdata
+
         result = run_terraform(payload.vm_data)
         update(3, "complete", 60)
 
@@ -99,14 +115,17 @@ def create_vm_background(session_id: str, payload: PaymentRequest):
         update(4, "complete", 85)
 
         update(5, "in_progress", 90)
+
         from app.models.virtual_machine import VirtualMachine
+
         vm = VirtualMachine(
+            user_id=user_id,
             instance_name=payload.vm_data["instance_name"],
             cloud_vm_id=result.get("cloud_vm_id"),
             status="running",
             availability_zone=payload.vm_data["availability_zone"],
             flavor_id=payload.vm_data["instance_flavor_id"],
-            image_id=payload.vm_data["instance_image_id"],
+            image_id=payload.vm_data["instance_image_id"].strip(),
             security_group_id=payload.vm_data["security_group_id"],
             subnet_cidr=payload.vm_data["subnet_id"],
             system_disk_type=payload.vm_data["system_disk_type"],
@@ -114,6 +133,7 @@ def create_vm_background(session_id: str, payload: PaymentRequest):
             public_ip=result.get("public_ip"),
             netdata_url=None,
         )
+
         db.add(vm)
         db.commit()
         db.refresh(vm)
@@ -121,41 +141,57 @@ def create_vm_background(session_id: str, payload: PaymentRequest):
         if result.get("public_ip"):
             threading.Thread(
                 target=install_netdata,
-                args=(result["public_ip"], payload.vm_data["administrator_password"], vm.id),
-                daemon=True
+                args=(
+                    result["public_ip"],
+                    payload.vm_data["administrator_password"],
+                    vm.id,
+                ),
+                daemon=True,
             ).start()
+
             print(f"🚀 Netdata installation started for VM {vm.id}")
 
         try:
-            resend.Emails.send({
-                "from": os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
-                "to": payload.email,
-                "subject": "✅ Your VM has been created!",
-                "html": f"""
-                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h1 style="color: #0f172a;">Your VM is ready! 🚀</h1>
-                        <p>Your virtual machine <strong>{payload.vm_data['instance_name']}</strong> has been successfully created.</p>
-                        <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                            <h2 style="color: #0f172a; margin-top: 0;">VM Details</h2>
-                            <p><strong>Name:</strong> {payload.vm_data['instance_name']}</p>
-                            <p><strong>Public IP:</strong> {result.get('public_ip', 'N/A')}</p>
-                            <p><strong>Region:</strong> {payload.vm_data['availability_zone']}</p>
-                            <p><strong>Disk:</strong> {payload.vm_data['system_disk_size']} GB {payload.vm_data['system_disk_type']}</p>
+            resend.Emails.send(
+                {
+                    "from": os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev"),
+                    "to": payload.email,
+                    "subject": "✅ Your VM has been created!",
+                    "html": f"""
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h1 style="color: #0f172a;">Your VM is ready! 🚀</h1>
+
+                            <p>
+                                Your virtual machine
+                                <strong>{payload.vm_data['instance_name']}</strong>
+                                has been successfully created.
+                            </p>
+
+                            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                                <h2 style="color: #0f172a; margin-top: 0;">VM Details</h2>
+                                <p><strong>Name:</strong> {payload.vm_data['instance_name']}</p>
+                                <p><strong>Public IP:</strong> {result.get('public_ip', 'N/A')}</p>
+                                <p><strong>Region:</strong> {payload.vm_data['availability_zone']}</p>
+                                <p><strong>Disk:</strong> {payload.vm_data['system_disk_size']} GB {payload.vm_data['system_disk_type']}</p>
+                            </div>
+
+                            <div style="background: #f0fdf4; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                                <h2 style="color: #15803d; margin-top: 0;">Payment Confirmed 💳</h2>
+                                <p><strong>Amount:</strong> ${payload.amount / 100:.2f}/month</p>
+                                <p><strong>Status:</strong> ✅ Succeeded</p>
+                            </div>
+
+                            <p style="color: #64748b; font-size: 14px;">
+                                Connect via SSH:<br/>
+                                <code style="background: #0f172a; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; display: inline-block; margin-top: 8px;">
+                                    ssh root@{result.get('public_ip', 'YOUR_IP')}
+                                </code>
+                            </p>
                         </div>
-                        <div style="background: #f0fdf4; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                            <h2 style="color: #15803d; margin-top: 0;">Payment Confirmed 💳</h2>
-                            <p><strong>Amount:</strong> ${payload.amount / 100:.2f}/month</p>
-                            <p><strong>Status:</strong> ✅ Succeeded</p>
-                        </div>
-                        <p style="color: #64748b; font-size: 14px;">
-                            Connect via SSH:<br/>
-                            <code style="background: #0f172a; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; display: inline-block; margin-top: 8px;">
-                                ssh root@{result.get('public_ip', 'YOUR_IP')}
-                            </code>
-                        </p>
-                    </div>
-                """,
-            })
+                    """,
+                }
+            )
+
         except Exception as e:
             print(f"⚠️ Email failed: {e}")
 
@@ -192,21 +228,37 @@ async def get_progress(session_id: str):
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
 @router.get("/session/{session_id}/vm")
-def get_session_vm(session_id: str, db: Session = Depends(get_db)):
+def get_session_vm(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     from app.models.virtual_machine import VirtualMachine
 
     if session_id in progress_store:
         store = progress_store[session_id]
-        vm_name = store.get("vm_data", {}).get("instance_name") if store.get("vm_data") else None
+        vm_name = (
+            store.get("vm_data", {}).get("instance_name")
+            if store.get("vm_data")
+            else None
+        )
+
         if vm_name:
-            vm = db.query(VirtualMachine).filter(
-                VirtualMachine.instance_name == vm_name
-            ).order_by(VirtualMachine.created_at.desc()).first()
+            vm = (
+                db.query(VirtualMachine)
+                .filter(
+                    VirtualMachine.instance_name == vm_name,
+                    VirtualMachine.user_id == current_user.id,
+                )
+                .order_by(VirtualMachine.created_at.desc())
+                .first()
+            )
+
             if vm:
                 return {
                     "id": vm.id,
@@ -219,9 +271,12 @@ def get_session_vm(session_id: str, db: Session = Depends(get_db)):
                     "system_disk_size": vm.system_disk_size,
                 }
 
-    vm = db.query(VirtualMachine).order_by(
-        VirtualMachine.created_at.desc()
-    ).first()
+    vm = (
+        db.query(VirtualMachine)
+        .filter(VirtualMachine.user_id == current_user.id)
+        .order_by(VirtualMachine.created_at.desc())
+        .first()
+    )
 
     if not vm:
         raise HTTPException(status_code=404, detail="No VM found")

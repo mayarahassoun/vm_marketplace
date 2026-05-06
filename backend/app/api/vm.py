@@ -22,6 +22,7 @@ def create_vm(
         result = run_terraform(payload.model_dump())
 
         vm = VirtualMachine(
+            user_id=current_user.id,
             instance_name=payload.instance_name,
             cloud_vm_id=result.get("cloud_vm_id"),
             status="running",
@@ -57,19 +58,31 @@ def create_vm(
 @router.get("", response_model=list[VMResponse])
 def list_vms(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # ← JWT requis
+    current_user: User = Depends(get_current_user)
 ):
-    vms = db.query(VirtualMachine).order_by(VirtualMachine.created_at.desc()).all()
+    vms = (
+        db.query(VirtualMachine)
+        .filter(VirtualMachine.user_id == current_user.id)
+        .order_by(VirtualMachine.created_at.desc())
+        .all()
+    )
     return vms
-
 
 @router.delete("/{vm_id}")
 def delete_vm(
     vm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # ← JWT requis
+    current_user: User = Depends(get_current_user)
 ):
-    vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
+    vm = (
+        db.query(VirtualMachine)
+        .filter(
+            VirtualMachine.id == vm_id,
+            VirtualMachine.user_id == current_user.id,
+        )
+        .first()
+    )
+
     if not vm:
         raise HTTPException(status_code=404, detail="VM not found")
 
@@ -82,20 +95,30 @@ def delete_vm(
 
     db.delete(vm)
     db.commit()
-    return {"message": "VM deleted successfully"}
 
+    return {"message": "VM deleted successfully"}
 
 @router.patch("/{vm_id}/netdata")
 def update_netdata_url(
     vm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # ← JWT requis
+    current_user: User = Depends(get_current_user)
 ):
-    vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
+    vm = (
+        db.query(VirtualMachine)
+        .filter(
+            VirtualMachine.id == vm_id,
+            VirtualMachine.user_id == current_user.id,
+        )
+        .first()
+    )
+
     if not vm:
         raise HTTPException(status_code=404, detail="VM not found")
+
     if vm.public_ip:
         vm.netdata_url = f"http://{vm.public_ip}:19999"
         db.commit()
         db.refresh(vm)
+
     return vm
