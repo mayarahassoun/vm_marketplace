@@ -19,27 +19,39 @@ class VMCreateRequest(BaseModel):
     @classmethod
     def validate_instance_name(cls, v):
         if " " in v:
-            raise ValueError("VM name cannot contain spaces. Use hyphens instead (e.g. my-vm)")
-        if not re.match(r'^[a-zA-Z0-9_\-]+$', v):
-            raise ValueError("VM name can only contain letters, numbers, hyphens and underscores")
+            raise ValueError(
+                "VM name cannot contain spaces. Use hyphens instead (e.g. my-vm)"
+            )
+
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", v):
+            raise ValueError(
+                "VM name can only contain letters, numbers, hyphens and underscores"
+            )
+
         return v
 
 
 class VMResponse(BaseModel):
     id: int
+    user_id: int
+
     instance_name: str
     cloud_vm_id: Optional[str] = None
     status: str
+
     availability_zone: str
     flavor_id: str
     image_id: str
     security_group_id: str
     subnet_cidr: str
+
     system_disk_type: str
     system_disk_size: int
+
     private_ip: Optional[str] = None
     public_ip: Optional[str] = None
     netdata_url: Optional[str] = None
+
     created_at: datetime
 
     class Config:
