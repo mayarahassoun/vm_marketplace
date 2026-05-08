@@ -11,6 +11,8 @@ from app.models import user, virtual_machine  # ensure models are registered
 from app.api.ssh import router as ssh_router
 from app.api.payment import router as payment_router
 from app.api.monitoring import router as monitoring_router
+from ai_engine.main import router as ai_router
+
 
 
 # Create tables
@@ -40,3 +42,4 @@ def root():
 app.include_router(ssh_router)
 app.include_router(payment_router)
 app.include_router(monitoring_router)
+app.include_router(ai_router)
