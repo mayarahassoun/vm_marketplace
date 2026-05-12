@@ -50,7 +50,7 @@ const BuildVMContext = createContext<BuildVMContextType | undefined>(undefined)
 
 export function BuildVMProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<BuildVMData>({
-    vmName: "my-custom-vm",
+    vmName: "",
     description: "",
     password: "",
     instanceId: "s6.medium.2",
