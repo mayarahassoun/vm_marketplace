@@ -21,7 +21,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js"
-import { API_URL } from "@/lib/api"
+import { API_URL, clearAuthToken, getAuthToken } from "@/lib/api"
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -71,10 +71,7 @@ function PaymentForm() {
     setError(null)
 
     try {
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("authToken")
+      const token = getAuthToken()
 
       if (!token) {
         throw new Error("Vous devez vous connecter avant de créer une VM.")
@@ -125,9 +122,7 @@ function PaymentForm() {
         }),
       })
       if (res.status === 401) {
-  localStorage.removeItem("token")
-  localStorage.removeItem("access_token")
-  localStorage.removeItem("authToken")
+  clearAuthToken()
   setError("Your session has expired. Please login again.")
 
   setTimeout(() => {

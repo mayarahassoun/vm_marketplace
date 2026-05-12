@@ -7,7 +7,7 @@ import {
   BarChart3, Terminal, Trash2, Server, Activity,
   CreditCard, Cpu, HardDrive, Power,
 } from "lucide-react"
-import { listVMs, deleteVM as deleteVMApi } from "@/lib/api"
+import { clearAuthToken, getAuthToken, listVMs, deleteVM as deleteVMApi } from "@/lib/api"
 import SSHPasswordModal from "@/components/SSHPasswordModal"
 import Link from "next/link"
 
@@ -52,7 +52,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchVMs() {
       try {
-        const token = localStorage.getItem("token")
+        const token = getAuthToken()
         if (!token) {
           router.push("/auth/login")
           return
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         )
       } catch (e: unknown) {
         if (e instanceof Error && e.message === "UNAUTHORIZED") {
-          localStorage.removeItem("token")
+          clearAuthToken()
           router.push("/auth/login")
           return
         }
@@ -144,7 +144,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
   <button
     onClick={() => {
-      localStorage.removeItem("token")
+      clearAuthToken()
       router.push("/auth/login")
     }}
     className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                   setDeleteLoading(true)
                   setDeleteError(null)
                   try {
-                    const token = localStorage.getItem("token")
+                    const token = getAuthToken()
                     if (!token) { router.push("/auth/login"); return }
                     await deleteVMApi(token, vmToDelete)
                     setVms((prev) => prev.filter((vm) => vm.id !== vmToDelete))

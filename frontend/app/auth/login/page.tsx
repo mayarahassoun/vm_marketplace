@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { login } from "@/lib/api"
+import { saveAuthToken } from "@/lib/api"
 import Image from "next/image"
 import AppLogo from "@/components/AppLogo"
 
@@ -31,7 +32,7 @@ export default function LoginPage() {
 
       const data = await login(email, password)
 
-      localStorage.setItem("token", data.access_token)
+      saveAuthToken(data.access_token)
 
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true")

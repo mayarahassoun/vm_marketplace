@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { getAuthToken } from "@/lib/api"
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [authorized] = useState(
-    () => typeof window !== "undefined" && Boolean(localStorage.getItem("token"))
+    () => Boolean(getAuthToken())
   )
 
   useEffect(() => {

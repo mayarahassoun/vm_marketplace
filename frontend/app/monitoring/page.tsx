@@ -7,7 +7,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, AreaChart, Area
 } from "recharts"
-import { API_URL } from "@/lib/api"
+import { API_URL, getAuthToken } from "@/lib/api"
 
 type MetricPoint = {
   time: string
@@ -41,7 +41,7 @@ function MonitoringPageContent() {
 
     async function fetchMetrics() {
       try {
-        const token = localStorage.getItem("token")
+        const token = getAuthToken()
         if (!token) {
           router.push("/auth/login")
           return

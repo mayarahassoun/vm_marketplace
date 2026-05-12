@@ -18,6 +18,7 @@ import {
 import { useMemo, useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
+import { getAuthToken } from "@/lib/api"
 
 const steps = [
   "Instance",
@@ -55,7 +56,7 @@ export default function BuildVMReviewPage() {
       return
     }
 
-    const token = localStorage.getItem("token")
+    const token = getAuthToken()
 
     if (!token) {
       router.push("/login")

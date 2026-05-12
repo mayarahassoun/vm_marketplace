@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { CheckCircle2, Download, LayoutDashboard, Loader2 } from "lucide-react"
-import { API_URL } from "@/lib/api"
+import { API_URL, getAuthToken } from "@/lib/api"
 
 type VMInfo = {
   id: number
@@ -38,10 +38,7 @@ function SuccessPageContent() {
 
     async function fetchVM() {
       try {
-        const token =
-          localStorage.getItem("token") ||
-          localStorage.getItem("access_token") ||
-          localStorage.getItem("authToken")
+        const token = getAuthToken()
 
         if (!token) {
           setError("You must be logged in to view this VM.")

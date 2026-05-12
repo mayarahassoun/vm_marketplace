@@ -4,6 +4,27 @@
   export const WS_URL =
     process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000"
 
+  export function getAuthToken() {
+    if (typeof window === "undefined") return null
+
+    return (
+      localStorage.getItem("token") ||
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("authToken")
+    )
+  }
+
+  export function saveAuthToken(token: string) {
+    localStorage.setItem("token", token)
+    localStorage.setItem("access_token", token)
+  }
+
+  export function clearAuthToken() {
+    localStorage.removeItem("token")
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("authToken")
+  }
+
   // ============ AUTH ============
   export async function register(email: string, password: string) {
     const res = await fetch(`${API_URL}/register`, {
