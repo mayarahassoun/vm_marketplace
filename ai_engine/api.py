@@ -183,6 +183,21 @@ def recommend_from_text(request: TextRecommendationRequest):
         reasoned["performance_level"],
         reasoned["performance_level"],
     )
+    highest_score = max(workload_score, resource_score, criticality_score)
+    if highest_score >= 8:
+        score_note = (
+            "Ces scores indiquent un besoin eleve, ce qui justifie une VM plus puissante "
+            "pour eviter le sous-dimensionnement."
+        )
+    elif highest_score >= 5:
+        score_note = (
+            "Ces scores indiquent un besoin intermediaire, ce qui justifie une VM equilibree "
+            "entre performance et cout."
+        )
+    else:
+        score_note = (
+            "Ces scores indiquent un besoin modere, ce qui evite de choisir une VM trop grande."
+        )
 
     decision_summary = {
         "why_this_flavor": (
@@ -194,7 +209,7 @@ def recommend_from_text(request: TextRecommendationRequest):
         "score_interpretation": (
             f"Le moteur estime la charge a {workload_score}/10, le besoin en ressources "
             f"a {resource_score}/10 et la criticite a {criticality_score}/10. "
-            "Ces scores indiquent un besoin modere, ce qui evite de choisir une VM trop grande."
+            f"{score_note}"
         ),
         "deployment_note": (
             "Cette recommandation represente le profil techniquement adapte. "
