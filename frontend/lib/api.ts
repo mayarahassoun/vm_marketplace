@@ -75,19 +75,19 @@
   }
 
   export const VM_IMAGES: VMImage[] = [
-    { id: "", name: "Ubuntu-Server-16", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
-    { id: "", name: "Ubuntu-server-18", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
-    { id: "", name: "Ubuntu-Server-20", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "2a35768e-4206-4882-b1a6-c78e3a198ac2", name: "Ubuntu-Server-16", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "67fc03d1-79d5-4570-90b9-18e304755631", name: "Ubuntu-server-18", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "efd9f876-7602-4ff1-be54-e4e899cb9302", name: "Ubuntu-Server-20", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "ready" },
     { id: "4b5a9278-a2ff-4c66-9cfb-4ce9a51ee06d", name: "Ubuntu-Server-22", os: "Linux", distro: "Ubuntu", minDisk: 30, minRam: 1, status: "ready" },
     { id: "7f22f4d8-4863-45d6-befe-d19ba7e7563a", name: "Ubuntu-Server-24", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "ready" },
-    { id: "", name: "Debian-8", os: "Linux", distro: "Debian", minDisk: 2, minRam: 2, status: "needs_id" },
-    { id: "", name: "Debian-9", os: "Linux", distro: "Debian", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "9c75e27b-20dd-44fb-93d1-1913d0bb9fbe", name: "Debian-8", os: "Linux", distro: "Debian", minDisk: 2, minRam: 2, status: "ready" },
+    { id: "8f232113-b76e-43b4-a663-bf3b0bab31f6", name: "Debian-9", os: "Linux", distro: "Debian", minDisk: 10, minRam: 2, status: "ready" },
     { id: "7be47085-2e35-40b9-855f-c6a1fb602cc9", name: "Debian-10", os: "Linux", distro: "Debian", minDisk: 10, minRam: 2, status: "ready" },
     { id: "af743e89-da9b-47a7-962d-41eb074bdfb2", name: "Debian-11", os: "Linux", distro: "Debian", minDisk: 2, minRam: 2, status: "ready" },
-    { id: "", name: "AlmaLinux-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
-    { id: "", name: "AlmaLinux-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
-    { id: "", name: "Rocky-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
-    { id: "", name: "Rocky-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "8488f3ba-d6f7-4e6b-9cce-8ad9e9e65fe3", name: "AlmaLinux-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "accb790d-bb89-4b3a-bfe8-e478cdce12f4", name: "AlmaLinux-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "0a1121be-2263-4f40-8c53-f58b37dba418", name: "Rocky-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "f247cdd4-7f2d-4ccf-b742-868b9a0a9908", name: "Rocky-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "ready" },
     { id: "b686df0b-5551-4bbc-87e6-041a963f578b", name: "Windows10-Pro", os: "Windows", distro: "Windows", minDisk: 80, minRam: 4, status: "ready" },
     { id: "d4b26806-5192-4e02-925f-022d79a80ac6", name: "Win2022-Standard-64", os: "Windows", distro: "Windows", minDisk: 80, minRam: 16, status: "ready" },
   ]
