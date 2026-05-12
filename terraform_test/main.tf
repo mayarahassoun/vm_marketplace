@@ -59,6 +59,10 @@ output "selected_az" {
   value = local.selected_az
 }
 
+output "selected_flavor_id" {
+  value = var.instance_flavor_id
+}
+
 output "vm_id" {
   value = hcs_ecs_compute_instance.vm.id
 }

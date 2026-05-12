@@ -13,6 +13,7 @@ from app.api.ssh import router as ssh_router
 from app.api.payment import router as payment_router
 from app.api.monitoring import router as monitoring_router
 
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()

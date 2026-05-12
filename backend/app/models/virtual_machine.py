@@ -8,8 +8,7 @@ class VirtualMachine(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Propriétaire de la VM
-    # Permet d'isoler les VMs par utilisateur connecté
+    # Propriétaire de la VM, pour isoler les VMs par utilisateur connecté.
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     instance_name = Column(String(255), nullable=False)
@@ -31,10 +30,9 @@ class VirtualMachine(Base):
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
-        nullable=False
+        nullable=False,
     )
 
     netdata_url = Column(String(255), nullable=True)
 
-    # Relation SQLAlchemy vers l'utilisateur propriétaire
     owner = relationship("User", backref="virtual_machines")

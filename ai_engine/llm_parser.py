@@ -132,7 +132,7 @@ Return ONLY a valid JSON object. No explanation. No markdown. No extra text.
 Rules:
 - application_type: web | ecommerce | database | ai | test | university_app | research | devops
 - traffic_level: low | medium | high
-- budget: low | medium | high  
+- budget: low | medium | high
 - performance_level: economic | balanced | performance
 - expected_users: integer number
 - storage_need: integer in GB

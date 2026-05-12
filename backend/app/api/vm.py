@@ -75,7 +75,6 @@ def list_vms(
         .order_by(VirtualMachine.created_at.desc())
         .all()
     )
-
     return vms
 
 
