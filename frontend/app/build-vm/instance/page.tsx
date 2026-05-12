@@ -7,11 +7,7 @@ import { ArrowLeft, ChevronRight, Server } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
-
-const steps = [
-  "Instance", "OS", "Storage", "Network",
-  "Region", "Add-ons", "Details", "Review",
-]
+import BuildVMSteps from "../BuildVMSteps"
 
 const flavorsByEcsType = {
   "General-purpose": [
@@ -198,21 +194,7 @@ export default function BuildVMInstancePage() {
 
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             <div>
-              <div className="mb-6 inline-flex flex-wrap rounded-xl bg-slate-100 p-1">
-                {steps.map((step, index) => (
-                  <button
-                    key={step}
-                    className={[
-                      "rounded-lg px-4 py-2 text-sm font-medium transition",
-                      index === 0
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700",
-                    ].join(" ")}
-                  >
-                    {step}
-                  </button>
-                ))}
-              </div>
+              <BuildVMSteps active="Instance" />
 
              
 

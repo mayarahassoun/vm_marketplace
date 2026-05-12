@@ -6,16 +6,7 @@ import { ArrowLeft, ChevronRight, HardDrive, Plus, Trash2 } from "lucide-react"
 import { useMemo } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
-const steps = [
-  "Instance",
-  "OS",
-  "Storage",
-  "Network",
-  "Region",
-  "Add-ons",
-  "Details",
-  "Review",
-]
+import BuildVMSteps from "../BuildVMSteps"
 
 export default function BuildVMStoragePage() {
   const router = useRouter()
@@ -70,24 +61,7 @@ export default function BuildVMStoragePage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div>
-            <div className="mb-6 inline-flex flex-wrap rounded-xl bg-slate-100 p-1">
-              {steps.map((step, index) => {
-                const isActive = index === 2
-                return (
-                  <button
-                    key={step}
-                    className={[
-                      "rounded-lg px-4 py-2 text-sm font-medium transition",
-                      isActive
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700",
-                    ].join(" ")}
-                  >
-                    {step}
-                  </button>
-                )
-              })}
-            </div>
+            <BuildVMSteps active="Storage" />
 
             <div className="space-y-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-6">

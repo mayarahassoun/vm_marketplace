@@ -7,11 +7,7 @@ import { useMemo, useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import { VM_IMAGES } from "@/lib/api"
-
-const steps = [
-  "Instance", "OS", "Storage", "Network",
-  "Region", "Add-ons", "Details", "Review",
-]
+import BuildVMSteps from "../BuildVMSteps"
 
 export default function BuildVMOSPage() {
   const router = useRouter()
@@ -70,22 +66,7 @@ export default function BuildVMOSPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div>
-            {/* Stepper */}
-            <div className="mb-6 inline-flex flex-wrap rounded-xl bg-slate-100 p-1">
-              {steps.map((step, index) => (
-                <button
-                  key={step}
-                  className={[
-                    "rounded-lg px-4 py-2 text-sm font-medium transition",
-                    index === 1
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-500 hover:text-slate-700",
-                  ].join(" ")}
-                >
-                  {step}
-                </button>
-              ))}
-            </div>
+            <BuildVMSteps active="OS" />
 
             {/* OS Card */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
