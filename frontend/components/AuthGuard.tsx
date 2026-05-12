@@ -6,17 +6,22 @@ import { getAuthToken } from "@/lib/api"
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [authorized] = useState(
-    () => Boolean(getAuthToken())
-  )
+  const [authorized, setAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    if (!authorized) {
-      router.push("/auth/login")
-    }
-  }, [authorized, router])
+    const frame = requestAnimationFrame(() => {
+      const hasToken = Boolean(getAuthToken())
+      setAuthorized(hasToken)
 
-  if (!authorized) {
+      if (!hasToken) {
+        router.push("/auth/login")
+      }
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [router])
+
+  if (authorized !== true) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fafafa]">
         <div className="text-slate-400">Checking authentication...</div>
