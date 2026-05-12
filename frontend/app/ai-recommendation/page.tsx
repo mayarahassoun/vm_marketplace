@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   BrainCircuit,
@@ -12,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { API_URL } from "@/lib/api"
+import { useBuildVM } from "../build-vm/BuildVMContext"
 
 type RecommendationResult = {
   llm_used: boolean
@@ -52,13 +54,19 @@ type RecommendationResult = {
   }
   ready_to_deploy: {
     instance_flavor_id: string
+    instance_image_id: string
+    availability_zone: string
+    security_group_id: string
+    subnet_id: string
     system_disk_size: number
-    system_disk_type: string
+    system_disk_type: "SSD" | "Business_SSD"
     estimated_monthly_cost: number
   }
 }
 
 export default function AiRecommendationPage() {
+  const router = useRouter()
+  const { setData } = useBuildVM()
   const [userRequest, setUserRequest] = useState(
     "Je veux une VM pour une application universitaire utilisée par 300 étudiants avec un budget moyen."
   )
@@ -91,6 +99,43 @@ export default function AiRecommendationPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleUseRecommendation() {
+    if (!result || !config) return
+
+    const deployConfig = result.ready_to_deploy
+    const storagePrice = deployConfig.system_disk_size >= 100 ? 10 : 5
+    const instanceRam = config.ram.includes("RAM")
+      ? config.ram
+      : `${config.ram} RAM`
+
+    setData((prev) => ({
+      ...prev,
+      vmName: "ai-demo-vm",
+      description: `Configuration recommandee par le moteur AI pour: ${userRequest}`,
+      instanceId: deployConfig.instance_flavor_id,
+      instanceName: deployConfig.instance_flavor_id,
+      instanceCpu: config.cpu,
+      instanceRam,
+      instancePrice: config.monthly_price,
+      os: deployConfig.instance_image_id,
+      osName: "Ubuntu-Server-24",
+      storageSize: deployConfig.system_disk_size,
+      storageType: deployConfig.system_disk_type,
+      storagePrice,
+      additionalDisks: [],
+      bandwidthType: "External-01",
+      bandwidthName: "ai-demo-bandwidth",
+      bandwidthSize: 5,
+      vpcMode: "existing",
+      subnetId: deployConfig.subnet_id,
+      networkPrice: 0,
+      region: "tn-global-1",
+      regionLabel: "tn-global-1 (Tunisia)",
+    }))
+
+    router.push("/build-vm/details")
   }
 
   const config = result?.recommendation.configuration
@@ -205,6 +250,15 @@ export default function AiRecommendationPage() {
                     </ul>
                   </div>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleUseRecommendation}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
+                >
+                  Utiliser cette recommandation
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
             )}
           </section>

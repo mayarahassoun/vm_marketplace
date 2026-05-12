@@ -75,18 +75,37 @@ export default function AIAssistantPage() {
   function handleUseRecommendation() {
     if (!result) return
     const config = result.ready_to_deploy
+    const recommendation = result.recommendation.configuration
+    const storagePrice = config.system_disk_size >= 100 ? 10 : 5
+    const instanceRam = recommendation.ram.includes("RAM")
+      ? recommendation.ram
+      : `${recommendation.ram} RAM`
 
     setData((prev) => ({
       ...prev,
+      vmName: "ai-demo-vm",
+      description: `Configuration recommandee par le moteur AI pour: ${prompt}`,
       instanceId: config.instance_flavor_id,
       instanceName: config.instance_flavor_id,
+      instanceCpu: recommendation.cpu,
+      instanceRam,
+      instancePrice: config.estimated_monthly_cost,
       storageSize: config.system_disk_size,
       storageType: config.system_disk_type,
+      storagePrice,
+      additionalDisks: [],
       os: config.instance_image_id,
       osName: "Ubuntu-Server-24",
+      bandwidthType: "External-01",
+      bandwidthName: "ai-demo-bandwidth",
+      bandwidthSize: 5,
+      vpcMode: "existing",
+      networkPrice: 0,
+      region: "tn-global-1",
+      regionLabel: "tn-global-1 (Tunisia)",
     }))
 
-    router.push("/build-vm/instance")
+    router.push("/build-vm/details")
   }
 
   return (
