@@ -45,18 +45,36 @@ def install_netdata(public_ip: str, password: str, vm_id: int, max_retries: int 
                 return False
 
     try:
-        # Fix Debian buster EOL repos
-        fix_repos_cmd = (
-            "echo 'deb http://archive.debian.org/debian buster main contrib non-free' > /etc/apt/sources.list && "
-            "echo 'deb http://archive.debian.org/debian-security buster/updates main contrib non-free' >> /etc/apt/sources.list"
+        # Debian Buster is EOL, so it needs archived repositories. Do not rewrite
+        # repositories for Ubuntu or newer Debian images.
+        prep_cmd = (
+            ". /etc/os-release && "
+            "if [ \"$ID\" = \"debian\" ] && [ \"$VERSION_CODENAME\" = \"buster\" ]; then "
+            "printf '%s\n' "
+            "'deb [trusted=yes] http://archive.debian.org/debian buster main contrib non-free' "
+            "'deb [trusted=yes] http://archive.debian.org/debian-security buster/updates main contrib non-free' "
+            "> /etc/apt/sources.list; "
+            "printf '%s\n' "
+            "'Acquire::Check-Valid-Until \"false\";' "
+            "'Acquire::AllowInsecureRepositories \"true\";' "
+            "'APT::Get::AllowUnauthenticated \"true\";' "
+            "> /etc/apt/apt.conf.d/99archive; "
+            "fi"
         )
-        ssh.exec_command(fix_repos_cmd)
+        stdin, stdout, stderr = ssh.exec_command(prep_cmd, timeout=60)
+        prep_status = stdout.channel.recv_exit_status()
+        if prep_status != 0:
+            print(f"⚠️ Netdata repository preparation warning: {stderr.read().decode()}")
         time.sleep(2)
 
-        # Install curl and netdata
+        # Install Netdata from the OS package manager.
         install_cmd = (
-            "apt-get update -o Acquire::Check-Valid-Until=false -y && "
-            "apt-get install -y netdata 2>&1"
+            "export DEBIAN_FRONTEND=noninteractive && "
+            "apt-get update "
+            "-o Acquire::Check-Valid-Until=false "
+            "-o Acquire::AllowInsecureRepositories=true "
+            "-o APT::Get::AllowUnauthenticated=true -y && "
+            "apt-get install -y --allow-unauthenticated netdata 2>&1"
         )
 
         print(f"📦 Installing Netdata on {public_ip}...")

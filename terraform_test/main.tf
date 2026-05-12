@@ -17,15 +17,23 @@ provider "hcs" {
 }
 
 data "hcs_availability_zones" "zones" {}
+data "hcs_ecs_compute_flavors" "all" {}
 
 locals {
   selected_az = data.hcs_availability_zones.zones.names[0]
+
+  selected_flavors = [
+    for flavor in data.hcs_ecs_compute_flavors.all.flavors : flavor
+    if flavor.id == var.instance_flavor_id || flavor.name == var.instance_flavor_id
+  ]
+
+  selected_flavor_id = length(local.selected_flavors) > 0 ? local.selected_flavors[0].id : var.instance_flavor_id
 }
 
 resource "hcs_ecs_compute_instance" "vm" {
   name                      = var.instance_name
   availability_zone         = local.selected_az
-  flavor_id                 = var.instance_flavor_id
+  flavor_id                 = local.selected_flavor_id
   image_id                  = trimspace(var.instance_image_id)
   delete_eip_on_termination = false
   security_group_ids        = [var.security_group_id]
@@ -40,6 +48,8 @@ resource "hcs_ecs_compute_instance" "vm" {
 }
 
 resource "hcs_vpc_eip" "eip" {
+  depends_on = [hcs_ecs_compute_instance.vm]
+
   publicip {
     type = "External-01"
   }
@@ -60,7 +70,7 @@ output "selected_az" {
 }
 
 output "selected_flavor_id" {
-  value = var.instance_flavor_id
+  value = local.selected_flavor_id
 }
 
 output "vm_id" {
