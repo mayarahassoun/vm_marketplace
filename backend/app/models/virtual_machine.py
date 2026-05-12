@@ -8,6 +8,7 @@ class VirtualMachine(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Propriétaire de la VM, pour isoler les VMs par utilisateur connecté.
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     instance_name = Column(String(255), nullable=False)

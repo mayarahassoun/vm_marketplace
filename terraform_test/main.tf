@@ -44,7 +44,7 @@ resource "hcs_vpc_eip" "eip" {
     type = "External-01"
   }
   bandwidth {
-    name       = "bw-${var.instance_name}"
+    name       = "bw-${replace(var.instance_name, " ", "-")}"
     size       = 5
     share_type = "PER"
   }
@@ -54,7 +54,6 @@ resource "hcs_vpc_eip_associate" "eip_associate" {
   public_ip = hcs_vpc_eip.eip.address
   port_id   = hcs_ecs_compute_instance.vm.network[0].port
 }
-
 
 output "selected_az" {
   value = local.selected_az

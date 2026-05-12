@@ -3,7 +3,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from app.schemas.vm import VMCreateRequest, VMResponse
-from app.services.terraform_service import run_terraform, destroy_terraform, install_netdata
+from app.services.terraform_service import (
+    run_terraform,
+    destroy_terraform,
+    install_netdata,
+)
 from app.db.session import get_db
 from app.models.virtual_machine import VirtualMachine
 from app.models.user import User
@@ -16,7 +20,7 @@ router = APIRouter(prefix="/api/vms", tags=["VMs"])
 def create_vm(
     payload: VMCreateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # ← JWT requis
+    current_user: User = Depends(get_current_user),
 ):
     try:
         result = run_terraform(payload.model_dump())
@@ -44,9 +48,14 @@ def create_vm(
         if result.get("public_ip"):
             threading.Thread(
                 target=install_netdata,
-                args=(result["public_ip"], payload.administrator_password, vm.id),
-                daemon=True
+                args=(
+                    result["public_ip"],
+                    payload.administrator_password,
+                    vm.id,
+                ),
+                daemon=True,
             ).start()
+
             print(f"🚀 Netdata installation started for VM {vm.id}")
 
         return vm
@@ -58,7 +67,7 @@ def create_vm(
 @router.get("", response_model=list[VMResponse])
 def list_vms(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     vms = (
         db.query(VirtualMachine)
@@ -68,11 +77,12 @@ def list_vms(
     )
     return vms
 
+
 @router.delete("/{vm_id}")
 def delete_vm(
     vm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     vm = (
         db.query(VirtualMachine)
@@ -88,21 +98,27 @@ def delete_vm(
 
     try:
         destroy_terraform(vm.instance_name)
+
     except FileNotFoundError:
         print(f"⚠️ No terraform state for {vm.instance_name} — skipping destroy")
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Terraform destroy failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Terraform destroy failed: {str(e)}",
+        )
 
     db.delete(vm)
     db.commit()
 
     return {"message": "VM deleted successfully"}
 
-@router.patch("/{vm_id}/netdata")
+
+@router.patch("/{vm_id}/netdata", response_model=VMResponse)
 def update_netdata_url(
     vm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     vm = (
         db.query(VirtualMachine)

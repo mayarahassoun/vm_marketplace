@@ -1,26 +1,23 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 
 from app.api import auth
 from app.api.vm import router as vm_router
 from app.db.session import Base, engine
-from app.models import user, virtual_machine  # ensure models are registered
+from app.models import user, virtual_machine
 from app.api.ssh import router as ssh_router
 from app.api.payment import router as payment_router
 from app.api.monitoring import router as monitoring_router
-from ai_engine.main import router as ai_router
 
 
-
-# Create tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -29,17 +26,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(vm_router)
+app.include_router(ssh_router)
+app.include_router(payment_router)
+app.include_router(monitoring_router)
+
 
 @app.get("/")
 def root():
     return {"message": "VM Marketplace API is running"}
 
 
-# Avec les autres routers
-app.include_router(ssh_router)
-app.include_router(payment_router)
-app.include_router(monitoring_router)
-app.include_router(ai_router)
+@app.post("/api/ai/recommend")
+async def ai_recommend(request: dict):
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            res = await client.post(
+                "http://localhost:8001/recommend-vm-from-text",
+                json=request,
+            )
+        return res.json()
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI engine unavailable: {str(e)}"
+        )
+
+
+@app.get("/api/ai/health")
+async def ai_health():
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            res = await client.get("http://localhost:8001/health")
+        return res.json()
+    except Exception:
+        return {"status": "unavailable"}
