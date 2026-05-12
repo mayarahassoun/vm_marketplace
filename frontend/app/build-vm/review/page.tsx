@@ -21,6 +21,9 @@ import AppLogo from "@/components/AppLogo"
 import { getAuthToken } from "@/lib/api"
 import BuildVMSteps from "../BuildVMSteps"
 
+const vmNameRegex = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])$/
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
+
 export default function BuildVMReviewPage() {
   const router = useRouter()
   const { data } = useBuildVM()
@@ -40,7 +43,19 @@ export default function BuildVMReviewPage() {
     data.networkPrice +
     data.regionPrice
 
+  const missingRequirements = [
+    !vmNameRegex.test(data.vmName || "") ? "nom VM valide" : null,
+    !passwordRegex.test(data.password || "") ? "mot de passe administrateur valide" : null,
+  ].filter(Boolean)
+
+  const canProceed = missingRequirements.length === 0
+
   function handleDeploy() {
+    if (!canProceed) {
+      setError("Veuillez completer les informations obligatoires avant de continuer.")
+      return
+    }
+
     if (!confirmed) {
       setError("Please confirm that the VM configuration is correct before continuing.")
       return
@@ -92,6 +107,25 @@ export default function BuildVMReviewPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div>
             <BuildVMSteps active="Review" />
+
+            {!canProceed && (
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <h2 className="text-lg font-semibold text-amber-900">
+                  Configuration incomplete
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-amber-800">
+                  Avant de passer au paiement, veuillez renseigner un{" "}
+                  {missingRequirements.join(" et ")}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/build-vm/details")}
+                  className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-950"
+                >
+                  Completer les details
+                </button>
+              </div>
+            )}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-start justify-between gap-4">
@@ -391,18 +425,18 @@ export default function BuildVMReviewPage() {
               <button
                 type="button"
                 onClick={handleDeploy}
-                disabled={!confirmed}
+                disabled={!confirmed || !canProceed}
                 className={[
                   "mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition",
-                  confirmed
+                  confirmed && canProceed
                     ? "bg-black text-white hover:bg-slate-900"
                     : "cursor-not-allowed bg-slate-200 text-slate-400",
                 ].join(" ")}
               >
                 <CreditCard className="h-4 w-4" />
-                {confirmed
+                {confirmed && canProceed
                   ? "Proceed to Secure Payment"
-                  : "Confirm configuration to continue"}
+                  : "Complete and confirm configuration"}
               </button>
 
               <p className="mt-4 text-center text-xs text-slate-400">
