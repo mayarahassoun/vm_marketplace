@@ -29,6 +29,11 @@ type AIAssistantResult = {
     }
     explanation: string
   }
+  decision_summary: {
+    why_this_flavor: string
+    score_interpretation: string
+    deployment_note: string
+  }
   extracted_parameters: Record<string, unknown>
   reasoned_parameters: {
     reasoning: {
@@ -282,6 +287,19 @@ export default function AIAssistantPage() {
                 <p className="text-sm text-slate-600">
                   {result.recommendation.explanation}
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                <h2 className="mb-2 text-sm font-semibold text-slate-700">
+                  Decision Summary
+                </h2>
+                <div className="space-y-2 text-sm leading-6 text-slate-600">
+                  <p>{result.decision_summary.why_this_flavor}</p>
+                  <p>{result.decision_summary.score_interpretation}</p>
+                  <p className="text-slate-500">
+                    {result.decision_summary.deployment_note}
+                  </p>
+                </div>
               </div>
 
               {/* CTA */}

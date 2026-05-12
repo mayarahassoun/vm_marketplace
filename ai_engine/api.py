@@ -64,6 +64,27 @@ class TextRecommendationRequest(BaseModel):
 
 @app.get("/")
 def root():
+    workload_score = recommendation["ai_scores"]["workload_score"]
+    resource_score = recommendation["ai_scores"]["resource_score"]
+    criticality_score = recommendation["ai_scores"]["criticality_score"]
+
+    decision_summary = {
+        "why_this_flavor": (
+            f"{vm_config['flavor_id']} was selected because the request maps to a "
+            f"{app_type} workload with {reasoned['expected_users']} expected users, "
+            f"{reasoned['traffic_level']} traffic, {reasoned['performance_level']} "
+            f"performance needs and {reasoned['storage_need']} GB storage."
+        ),
+        "score_interpretation": (
+            f"The engine estimated workload={workload_score}/10, "
+            f"resources={resource_score}/10 and criticality={criticality_score}/10."
+        ),
+        "deployment_note": (
+            "This recommendation represents the technically suitable VM profile. "
+            "Actual provisioning can still depend on the current cloud quota."
+        ),
+    }
+
     return {
         "service": "AI VM Recommendation Engine",
         "status":  "running",
@@ -157,5 +178,6 @@ def recommend_from_text(request: TextRecommendationRequest):
         "extracted_parameters": extracted,
         "reasoned_parameters": reasoned,
         "recommendation":      recommendation,
+        "decision_summary":    decision_summary,
         "ready_to_deploy":     ready_to_deploy,
     }
