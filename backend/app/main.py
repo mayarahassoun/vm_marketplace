@@ -46,7 +46,20 @@ async def ai_recommend(request: dict):
                 "http://localhost:8001/recommend-vm-from-text",
                 json=request,
             )
-        return res.json()
+        if res.status_code >= 400:
+            raise HTTPException(
+                status_code=503,
+                detail=f"AI engine error: {res.text[:500]}",
+            )
+        try:
+            return res.json()
+        except ValueError:
+            raise HTTPException(
+                status_code=503,
+                detail=f"AI engine returned non-JSON response: {res.text[:500]}",
+            )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=503,
@@ -59,6 +72,11 @@ async def ai_health():
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             res = await client.get("http://localhost:8001/health")
-        return res.json()
+        if res.status_code >= 400:
+            return {"status": "unavailable", "detail": res.text[:500]}
+        try:
+            return res.json()
+        except ValueError:
+            return {"status": "unavailable", "detail": "AI engine returned non-JSON response"}
     except Exception:
         return {"status": "unavailable"}
