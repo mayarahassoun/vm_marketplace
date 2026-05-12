@@ -74,7 +74,9 @@ function PaymentForm() {
       const token = getAuthToken()
 
       if (!token) {
-        throw new Error("Vous devez vous connecter avant de créer une VM.")
+        setError("Votre session est introuvable. Veuillez vous reconnecter.")
+        router.push("/auth/login")
+        return
       }
 
       const cardElement = elements.getElement(CardNumberElement)
@@ -122,15 +124,15 @@ function PaymentForm() {
         }),
       })
       if (res.status === 401) {
-  clearAuthToken()
-  setError("Your session has expired. Please login again.")
+        clearAuthToken()
+        setError("Votre session a expire. Veuillez vous reconnecter.")
 
-  setTimeout(() => {
-    router.push("/login")
-  }, 1200)
+        setTimeout(() => {
+          router.push("/auth/login")
+        }, 1200)
 
-  return
-}
+        return
+      }
 
 
       if (!res.ok) {

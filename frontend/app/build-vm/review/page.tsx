@@ -59,7 +59,7 @@ export default function BuildVMReviewPage() {
     const token = getAuthToken()
 
     if (!token) {
-      router.push("/login")
+      router.push("/auth/login")
       return
     }
 
