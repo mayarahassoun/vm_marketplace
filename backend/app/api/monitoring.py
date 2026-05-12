@@ -1,8 +1,10 @@
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from fastapi import Depends
+
+from app.core.security import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.models.virtual_machine import VirtualMachine
 from datetime import datetime
 
@@ -10,8 +12,19 @@ router = APIRouter(prefix="/api/monitoring", tags=["Monitoring"])
 
 
 @router.get("/{vm_id}")
-async def get_metrics(vm_id: int, db: Session = Depends(get_db)):
-    vm = db.query(VirtualMachine).filter(VirtualMachine.id == vm_id).first()
+async def get_metrics(
+    vm_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    vm = (
+        db.query(VirtualMachine)
+        .filter(
+            VirtualMachine.id == vm_id,
+            VirtualMachine.user_id == current_user.id,
+        )
+        .first()
+    )
     if not vm:
         raise HTTPException(status_code=404, detail="VM not found")
 
