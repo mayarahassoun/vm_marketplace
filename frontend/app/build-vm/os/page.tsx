@@ -6,19 +6,21 @@ import { ArrowLeft, ChevronRight, Monitor } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
-import { VM_IMAGES } from "@/lib/api"
+import { VM_IMAGES, type VMImage } from "@/lib/api"
 import BuildVMSteps from "../BuildVMSteps"
+
+const osFamilies: VMImage["distro"][] = ["Ubuntu", "Debian", "Other", "Windows"]
 
 export default function BuildVMOSPage() {
   const router = useRouter()
   const { data, setData } = useBuildVM()
 
-  const [tab, setTab] = useState<"Linux" | "Windows">("Linux")
+  const [tab, setTab] = useState<VMImage["distro"]>("Ubuntu")
   const [search, setSearch] = useState("")
 
   const options = useMemo(() => {
     return VM_IMAGES.filter((img) => {
-      const matchTab = img.os === tab
+      const matchTab = img.distro === tab
       const matchSearch = img.name.toLowerCase().includes(search.toLowerCase())
       return matchTab && matchSearch
     })
@@ -82,9 +84,8 @@ export default function BuildVMOSPage() {
                 </div>
               </div>
 
-              {/* Tabs Linux / Windows */}
-              <div className="mb-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-100 p-1">
-                {(["Linux", "Windows"] as const).map((item) => (
+              <div className="mb-5 grid grid-cols-2 gap-3 rounded-xl bg-slate-100 p-1 xl:grid-cols-4">
+                {osFamilies.map((item) => (
                   <button
                     key={item}
                     onClick={() => setTab(item)}
@@ -110,12 +111,25 @@ export default function BuildVMOSPage() {
 
               {/* Liste des images */}
               <div className="grid gap-x-10 gap-y-4 md:grid-cols-2">
-                {options.map((img) => (
-                  <label key={img.id} className="flex cursor-pointer items-start gap-3">
+                {options.map((img) => {
+                  const isReady = img.status !== "needs_id" && Boolean(img.id)
+
+                  return (
+                  <label
+                    key={`${img.distro}-${img.name}`}
+                    className={[
+                      "flex items-start gap-3 rounded-xl border p-4 transition",
+                      isReady
+                        ? "cursor-pointer border-slate-200 hover:bg-slate-50"
+                        : "cursor-not-allowed border-slate-100 bg-slate-50 opacity-70",
+                      data.os === img.id && isReady ? "border-black bg-white" : "",
+                    ].join(" ")}
+                  >
                     <input
                       type="radio"
                       name="os"
-                      checked={data.os === img.id}
+                      checked={data.os === img.id && isReady}
+                      disabled={!isReady}
                       onChange={() =>
                         setData((prev) => ({
                           ...prev,
@@ -125,16 +139,29 @@ export default function BuildVMOSPage() {
                       }
                       className="mt-1 h-4 w-4 accent-black"
                     />
-                    <div>
-                      <div className="text-lg font-semibold text-slate-900">
-                        {img.name}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-lg font-semibold text-slate-900">
+                          {img.name}
+                        </span>
+                        {!isReady && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            UUID requis
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-500">
                         Min {img.minDisk} GB disk · {img.minRam} GB RAM · Free
                       </div>
+                      {!isReady && (
+                        <div className="mt-1 text-xs text-slate-400">
+                          Visible dans la console HCS, mais non deployable tant que son UUID n&apos;est pas ajoute.
+                        </div>
+                      )}
                     </div>
                   </label>
-                ))}
+                  )
+                })}
 
                 {options.length === 0 && (
                   <p className="col-span-2 text-sm text-slate-400">

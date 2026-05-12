@@ -68,23 +68,29 @@
     id: string
     name: string
     os: "Linux" | "Windows"
-    distro: string
+    distro: "Ubuntu" | "Debian" | "Other" | "Windows"
     minDisk: number
     minRam: number
+    status?: "ready" | "needs_id"
   }
 
   export const VM_IMAGES: VMImage[] = [
-    // 👇 Remplace les IDs par les vrais UUIDs HCS
-    // Linux
-    { id: "7f22f4d8-4863-45d6-befe-d19ba7e7563a", name: "Ubuntu-Server-24", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2 },
-    { id: "4b5a9278-a2ff-4c66-9cfb-4ce9a51ee06d", name: "Ubuntu-Server-22 ", os: "Linux", distro: "Ubuntu", minDisk: 30, minRam: 1 },
-    { id: "af743e89-da9b-47a7-962d-41eb074bdfb2", name: "Debian-11",           os: "Linux", distro: "Debian",  minDisk: 40, minRam: 2 },
-    { id: " 7be47085-2e35-40b9-855f-c6a1fb602cc9", name: "Debian-10",            os: "Linux", distro: "CentOS",  minDisk: 10, minRam: 2 },
-    // Windows
-    { id: "b686df0b-5551-4bbc-87e6-041a963f578b", name: "Windows10-Pro", os: "Windows", distro: "Windows", minDisk: 80, minRam: 4 },
-    { id: "d4b26806-5192-4e02-925f-022d79a80ac6", name: "Win2022-Standard-64", os: "Windows", distro: "Windows", minDisk: 80, minRam: 16 },
+    { id: "", name: "Ubuntu-Server-16", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "", name: "Ubuntu-server-18", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "", name: "Ubuntu-Server-20", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "4b5a9278-a2ff-4c66-9cfb-4ce9a51ee06d", name: "Ubuntu-Server-22", os: "Linux", distro: "Ubuntu", minDisk: 30, minRam: 1, status: "ready" },
+    { id: "7f22f4d8-4863-45d6-befe-d19ba7e7563a", name: "Ubuntu-Server-24", os: "Linux", distro: "Ubuntu", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "", name: "Debian-8", os: "Linux", distro: "Debian", minDisk: 2, minRam: 2, status: "needs_id" },
+    { id: "", name: "Debian-9", os: "Linux", distro: "Debian", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "7be47085-2e35-40b9-855f-c6a1fb602cc9", name: "Debian-10", os: "Linux", distro: "Debian", minDisk: 10, minRam: 2, status: "ready" },
+    { id: "af743e89-da9b-47a7-962d-41eb074bdfb2", name: "Debian-11", os: "Linux", distro: "Debian", minDisk: 2, minRam: 2, status: "ready" },
+    { id: "", name: "AlmaLinux-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "", name: "AlmaLinux-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "", name: "Rocky-8", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "", name: "Rocky-9", os: "Linux", distro: "Other", minDisk: 10, minRam: 2, status: "needs_id" },
+    { id: "b686df0b-5551-4bbc-87e6-041a963f578b", name: "Windows10-Pro", os: "Windows", distro: "Windows", minDisk: 80, minRam: 4, status: "ready" },
+    { id: "d4b26806-5192-4e02-925f-022d79a80ac6", name: "Win2022-Standard-64", os: "Windows", distro: "Windows", minDisk: 80, minRam: 16, status: "ready" },
   ]
-
   // ============ VMs ============
   export async function createVM(token: string, payload: {
     instance_name: string
