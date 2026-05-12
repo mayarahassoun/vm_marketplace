@@ -201,13 +201,13 @@ export default function AIAssistantPage() {
                     </p>
                   </div>
                   <div className="rounded-xl bg-white p-4">
-                    <p className="text-xs text-slate-400">Storage</p>
+                    <p className="text-xs text-slate-400">Stockage</p>
                     <p className="font-semibold text-slate-900">
                       {result.ready_to_deploy.system_disk_size} GB {result.ready_to_deploy.system_disk_type}
                     </p>
                   </div>
                   <div className="rounded-xl bg-white p-4">
-                    <p className="text-xs text-slate-400">Estimated Cost</p>
+                    <p className="text-xs text-slate-400">Cout estime</p>
                     <p className="font-semibold text-violet-600 text-lg">
                       ${result.ready_to_deploy.estimated_monthly_cost}/mo
                     </p>
@@ -215,7 +215,7 @@ export default function AIAssistantPage() {
                 </div>
 
                 <div className="mt-3 rounded-xl bg-white p-4">
-                  <p className="text-xs text-slate-400">Use Case</p>
+                  <p className="text-xs text-slate-400">Cas d&apos;utilisation</p>
                   <p className="text-sm text-slate-700">
                     {result.recommendation.configuration.use_case}
                   </p>
@@ -223,25 +223,25 @@ export default function AIAssistantPage() {
 
                 {/* AI Scores */}
                 <div className="mt-3 rounded-xl bg-white p-4">
-                  <p className="mb-3 text-xs text-slate-400">AI Scores</p>
+                  <p className="mb-3 text-xs text-slate-400">Scores IA</p>
                   <div className="flex gap-6">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-violet-600">
                         {result.recommendation.ai_scores.workload_score}/10
                       </div>
-                      <div className="text-xs text-slate-400">Workload</div>
+                      <div className="text-xs text-slate-400">Charge</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
                         {result.recommendation.ai_scores.resource_score}/10
                       </div>
-                      <div className="text-xs text-slate-400">Resource</div>
+                      <div className="text-xs text-slate-400">Ressources</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-600">
                         {result.recommendation.ai_scores.criticality_score}/10
                       </div>
-                      <div className="text-xs text-slate-400">Criticality</div>
+                      <div className="text-xs text-slate-400">Criticite</div>
                     </div>
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export default function AIAssistantPage() {
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="mb-2 text-sm font-semibold text-slate-700">
-                  Decision Summary
+                  Resume de la decision
                 </h2>
                 <div className="space-y-2 text-sm leading-6 text-slate-600">
                   <p>{result.decision_summary.why_this_flavor}</p>
@@ -307,7 +307,7 @@ export default function AIAssistantPage() {
                 onClick={handleUseRecommendation}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-6 py-4 text-sm font-medium text-white hover:bg-slate-900 transition"
               >
-                Use this configuration
+                Utiliser cette configuration
                 <ArrowRight className="h-4 w-4" />
               </button>
 

@@ -103,14 +103,14 @@ export default function AiRecommendationPage() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
               <Sparkles className="h-4 w-4" />
-              AI VM Recommendation
+              Recommandation IA VM
             </div>
             <h1 className="text-4xl font-bold text-slate-900">
-              Smart VM Assistant
+              Assistant intelligent de recommandation VM
             </h1>
             <p className="mt-3 max-w-2xl text-slate-600">
-              Describe an application workload and get a VM recommendation with
-              extracted needs, reasoning scores and deployment notes.
+              Decrivez le besoin de votre application et obtenez une VM adaptee,
+              avec les besoins extraits, les scores de raisonnement et une justification.
             </p>
           </div>
 
@@ -154,8 +154,7 @@ export default function AiRecommendationPage() {
               <div className="space-y-5">
                 {!result.llm_used && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-                    Ollama is unavailable. The engine used deterministic fallback
-                    extraction.
+                    Ollama est indisponible. Le moteur utilise une extraction deterministe.
                   </div>
                 )}
 
@@ -170,18 +169,18 @@ export default function AiRecommendationPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Info icon={<Cpu className="h-4 w-4" />} label="CPU" value={config.cpu} />
                   <Info icon={<MemoryStick className="h-4 w-4" />} label="RAM" value={config.ram} />
-                  <Info icon={<HardDrive className="h-4 w-4" />} label="Storage" value={`${result.ready_to_deploy.system_disk_size} GB ${result.ready_to_deploy.system_disk_type}`} />
-                  <Info icon={<Database className="h-4 w-4" />} label="Estimated Cost" value={`$${result.ready_to_deploy.estimated_monthly_cost}/mo`} />
+                  <Info icon={<HardDrive className="h-4 w-4" />} label="Stockage" value={`${result.ready_to_deploy.system_disk_size} GB ${result.ready_to_deploy.system_disk_type}`} />
+                  <Info icon={<Database className="h-4 w-4" />} label="Cout estime" value={`$${result.ready_to_deploy.estimated_monthly_cost}/mo`} />
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  <Score label="Workload" value={scores.workload_score} />
-                  <Score label="Resources" value={scores.resource_score} />
-                  <Score label="Criticality" value={scores.criticality_score} />
+                  <Score label="Charge" value={scores.workload_score} />
+                  <Score label="Ressources" value={scores.resource_score} />
+                  <Score label="Criticite" value={scores.criticality_score} />
                 </div>
 
                 <div className="rounded-xl border p-4">
-                  <h3 className="font-semibold text-slate-900">Decision summary</h3>
+                  <h3 className="font-semibold text-slate-900">Resume de la decision</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     {result.decision_summary.why_this_flavor}
                   </p>
@@ -195,7 +194,7 @@ export default function AiRecommendationPage() {
 
                 {result.reasoned_parameters.reasoning.steps.length > 0 && (
                   <div className="rounded-xl border p-4">
-                    <h3 className="font-semibold text-slate-900">Reasoning steps</h3>
+                    <h3 className="font-semibold text-slate-900">Etapes du raisonnement</h3>
                     <ul className="mt-3 space-y-2 text-sm text-slate-600">
                       {result.reasoned_parameters.reasoning.steps.map((step) => (
                         <li key={step} className="flex gap-2">

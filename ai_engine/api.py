@@ -60,6 +60,30 @@ class TextRecommendationRequest(BaseModel):
     user_request: str
 
 
+APP_TYPE_LABELS = {
+    "test": "application de test",
+    "web": "application web",
+    "university_app": "application universitaire",
+    "ecommerce": "plateforme e-commerce",
+    "database": "base de donnees",
+    "ai": "application d'intelligence artificielle",
+    "research": "environnement de recherche",
+    "devops": "environnement DevOps",
+}
+
+TRAFFIC_LABELS = {
+    "low": "faible",
+    "medium": "moyen",
+    "high": "eleve",
+}
+
+PERFORMANCE_LABELS = {
+    "basic": "basique",
+    "balanced": "equilibre",
+    "performance": "eleve",
+}
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.get("/")
@@ -153,21 +177,28 @@ def recommend_from_text(request: TextRecommendationRequest):
     workload_score = recommendation["ai_scores"]["workload_score"]
     resource_score = recommendation["ai_scores"]["resource_score"]
     criticality_score = recommendation["ai_scores"]["criticality_score"]
+    app_label = APP_TYPE_LABELS.get(app_type, app_type)
+    traffic_label = TRAFFIC_LABELS.get(reasoned["traffic_level"], reasoned["traffic_level"])
+    performance_label = PERFORMANCE_LABELS.get(
+        reasoned["performance_level"],
+        reasoned["performance_level"],
+    )
 
     decision_summary = {
         "why_this_flavor": (
-            f"{vm_config['flavor_id']} was selected because the request maps to a "
-            f"{app_type} workload with {reasoned['expected_users']} expected users, "
-            f"{reasoned['traffic_level']} traffic, {reasoned['performance_level']} "
-            f"performance needs and {reasoned['storage_need']} GB storage."
+            f"La configuration {vm_config['flavor_id']} a ete selectionnee car la demande "
+            f"correspond a une {app_label} avec environ {reasoned['expected_users']} "
+            f"utilisateurs, un trafic {traffic_label}, un besoin de performance "
+            f"{performance_label} et {reasoned['storage_need']} GB de stockage."
         ),
         "score_interpretation": (
-            f"The engine estimated workload={workload_score}/10, "
-            f"resources={resource_score}/10 and criticality={criticality_score}/10."
+            f"Le moteur estime la charge a {workload_score}/10, le besoin en ressources "
+            f"a {resource_score}/10 et la criticite a {criticality_score}/10. "
+            "Ces scores indiquent un besoin modere, ce qui evite de choisir une VM trop grande."
         ),
         "deployment_note": (
-            "This recommendation represents the technically suitable VM profile. "
-            "Actual provisioning can still depend on the current cloud quota."
+            "Cette recommandation represente le profil techniquement adapte. "
+            "Le deploiement reel peut toutefois dependre du quota disponible sur le cloud."
         ),
     }
 

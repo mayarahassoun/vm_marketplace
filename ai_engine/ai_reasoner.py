@@ -45,6 +45,30 @@ def infer_storage_need(
     return inferred, 0.90
 
 
+APP_TYPE_LABELS = {
+    "test": "application de test",
+    "web": "application web",
+    "university_app": "application universitaire",
+    "ecommerce": "plateforme e-commerce",
+    "database": "base de donnees",
+    "ai": "application d'intelligence artificielle",
+    "research": "environnement de recherche",
+    "devops": "environnement DevOps",
+}
+
+TRAFFIC_LABELS = {
+    "low": "faible",
+    "medium": "moyen",
+    "high": "eleve",
+}
+
+PERFORMANCE_LABELS = {
+    "basic": "basique",
+    "balanced": "equilibre",
+    "performance": "eleve",
+}
+
+
 def reason_about_request(parsed_need: dict) -> dict:
     result = parsed_need.copy()
     steps = []
@@ -55,7 +79,10 @@ def reason_about_request(parsed_need: dict) -> dict:
     # --- Traffic ---
     inferred_traffic, tc = infer_traffic_level(expected_users)
     if inferred_traffic != result["traffic_level"]:
-        steps.append(f"Traffic adjusted to '{inferred_traffic}' based on {expected_users} users.")
+        traffic_label = TRAFFIC_LABELS.get(inferred_traffic, inferred_traffic)
+        steps.append(
+            f"Le trafic a ete estime comme {traffic_label} a partir de {expected_users} utilisateurs."
+        )
         result["traffic_level"] = inferred_traffic
 
     # --- Performance ---
@@ -63,7 +90,11 @@ def reason_about_request(parsed_need: dict) -> dict:
         application_type, expected_users, result["performance_level"]
     )
     if inferred_perf != result["performance_level"]:
-        steps.append(f"Performance adjusted to '{inferred_perf}' for {application_type} workload.")
+        app_label = APP_TYPE_LABELS.get(application_type, application_type)
+        perf_label = PERFORMANCE_LABELS.get(inferred_perf, inferred_perf)
+        steps.append(
+            f"Le niveau de performance a ete ajuste a {perf_label} pour une {app_label}."
+        )
         result["performance_level"] = inferred_perf
 
     # --- Storage ---
@@ -72,7 +103,10 @@ def reason_about_request(parsed_need: dict) -> dict:
     )
     # FIX: toujours corriger si storage_need est 0 ou inférieur à la valeur inférée
     if inferred_storage != int(result["storage_need"]) or int(result["storage_need"]) == 0:
-        steps.append(f"Storage adjusted to {inferred_storage} GB for {application_type} workload.")
+        app_label = APP_TYPE_LABELS.get(application_type, application_type)
+        steps.append(
+            f"Le stockage a ete ajuste a {inferred_storage} GB pour une {app_label}."
+        )
         result["storage_need"] = inferred_storage
 
     # --- Budget cap: corriger budget "high" si non justifié par le contexte ---
@@ -83,7 +117,10 @@ def reason_about_request(parsed_need: dict) -> dict:
         workload = estimate_workload_category(expected_users)
         # Seulement garder budget=high si vraiment critique
         if workload not in ["high", "critical"]:
-            steps.append(f"Budget adjusted to 'medium' — '{application_type}' does not require GPU-tier resources.")
+            app_label = APP_TYPE_LABELS.get(application_type, application_type)
+            steps.append(
+                f"Le budget a ete ramene a moyen car une {app_label} ne necessite pas de ressources GPU."
+            )
             result["budget"] = "medium"
 
     # FIX: budget maintenant transmis à compute_ai_scores
