@@ -11,6 +11,8 @@ import BuildVMSteps from "../BuildVMSteps"
 
 const osFamilies: VMImage["distro"][] = ["Ubuntu", "Debian", "Other", "Windows"]
 
+const getStoragePrice = (size: number) => (size >= 100 ? 10 : 5)
+
 export default function BuildVMOSPage() {
   const router = useRouter()
   const { data, setData } = useBuildVM()
@@ -108,6 +110,9 @@ export default function BuildVMOSPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="mb-6 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
               />
+              <p className="-mt-3 mb-6 text-sm text-slate-500">
+                Le disque systeme sera ajuste automatiquement si l&apos;image exige un minimum superieur.
+              </p>
 
               {/* Liste des images */}
               <div className="grid gap-x-10 gap-y-4 md:grid-cols-2">
@@ -131,11 +136,17 @@ export default function BuildVMOSPage() {
                       checked={data.os === img.id && isReady}
                       disabled={!isReady}
                       onChange={() =>
-                        setData((prev) => ({
-                          ...prev,
-                          os: img.id,
-                          osName: img.name,
-                        }))
+                        setData((prev) => {
+                          const storageSize = Math.max(prev.storageSize, img.minDisk)
+
+                          return {
+                            ...prev,
+                            os: img.id,
+                            osName: img.name,
+                            storageSize,
+                            storagePrice: getStoragePrice(storageSize),
+                          }
+                        })
                       }
                       className="mt-1 h-4 w-4 accent-black"
                     />
