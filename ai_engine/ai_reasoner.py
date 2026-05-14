@@ -1,4 +1,4 @@
-from scoring import compute_ai_scores, estimate_workload_category
+from .scoring import compute_ai_scores, estimate_workload_category
 
 
 def infer_traffic_level(expected_users: int) -> tuple[str, float]:
@@ -113,7 +113,6 @@ def reason_about_request(parsed_need: dict) -> dict:
     # Un utilisateur qui dit "haute performance" ne veut pas forcément payer GPU
     NON_GPU_TYPES = ["web", "ecommerce", "university_app", "devops", "test"]
     if result.get("budget") == "high" and application_type in NON_GPU_TYPES:
-        from scoring import estimate_workload_category
         workload = estimate_workload_category(expected_users)
         # Seulement garder budget=high si vraiment critique
         if workload not in ["high", "critical"]:
