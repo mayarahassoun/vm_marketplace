@@ -6,47 +6,47 @@ import { useRouter } from "next/navigation"
 const vmTemplates = [
   {
     id: 1,
-    name: "Basic Linux VM",
-    provider: "Ubuntu 22.04 LTS",
-    description: "Ideal for lightweight workloads and development environments.",
+    name: "University Web Portal",
+    provider: "Ubuntu Server 22",
+    description: "Small profile for faculty websites, student services and lightweight academic portals.",
     cpu: "1 vCPU",
     ram: "2 GB RAM",
-    storage: "50 GB SSD",
-    price: "$12/mo",
+    storage: "30 GB SSD",
+    price: "$10/mo",
     badge: "Popular",
   },
   {
     id: 2,
-    name: "Standard Web Server",
-    provider: "Debian 12",
-    description: "Balanced performance for websites, APIs, and business apps.",
+    name: "E-learning Platform",
+    provider: "Debian 11",
+    description: "Balanced VM for Moodle-style platforms, online courses and academic collaboration tools.",
     cpu: "2 vCPU",
     ram: "4 GB RAM",
-    storage: "80 GB SSD",
-    price: "$24/mo",
+    storage: "60 GB Business_SSD",
+    price: "$20/mo",
     badge: "Recommended",
   },
   {
     id: 3,
-    name: "Compute Optimized",
-    provider: "CentOS Stream",
-    description: "Designed for CPU-intensive workloads and backend processing.",
+    name: "Research Lab Workspace",
+    provider: "Ubuntu Server 24",
+    description: "Compute-ready workspace for student projects, data processing and PFE prototypes.",
     cpu: "4 vCPU",
     ram: "8 GB RAM",
-    storage: "120 GB SSD",
-    price: "$48/mo",
-    badge: "High Performance",
+    storage: "100 GB Business_SSD",
+    price: "$40/mo",
+    badge: "Lab Ready",
   },
   {
     id: 4,
-    name: "Windows Server VM",
+    name: "Administration Workspace",
     provider: "Windows Server 2022",
-    description: "Best for enterprise services and Windows-based workloads.",
-    cpu: "4 vCPU",
-    ram: "16 GB RAM",
-    storage: "150 GB SSD",
-    price: "$79/mo",
-    badge: "Enterprise",
+    description: "Windows-based environment for administrative tools, internal services and training sessions.",
+    cpu: "2 vCPU",
+    ram: "8 GB RAM",
+    storage: "100 GB Business_SSD",
+    price: "$30/mo",
+    badge: "Admin",
   },
 ]
 
@@ -62,7 +62,7 @@ export default function MarketplacePage() {
             VM Marketplace
           </h1>
           <p className="mt-2 text-lg text-slate-500">
-            Browse ready-to-deploy virtual machine templates
+            Browse ready-to-deploy VM profiles for academic and research workloads
           </p>
         </div>
 
@@ -130,7 +130,8 @@ export default function MarketplacePage() {
       <option>All OS</option>
       <option>Ubuntu</option>
       <option>Debian</option>
-      <option>CentOS</option>
+      <option>AlmaLinux</option>
+      <option>Rocky Linux</option>
       <option>Windows Server</option>
     </select>
     <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -214,22 +215,22 @@ export default function MarketplacePage() {
       <div className="space-y-2 text-sm text-slate-600">
         <label className="flex items-center gap-3">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
-          50 GB SSD
+          30 GB SSD
         </label>
 
         <label className="flex items-center gap-3">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
-          80 GB SSD
+          60 GB Business_SSD
         </label>
 
         <label className="flex items-center gap-3">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
-          120 GB SSD
+          100 GB Business_SSD
         </label>
 
         <label className="flex items-center gap-3">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
-          150 GB SSD
+          150 GB Business_SSD
         </label>
       </div>
     </div>
