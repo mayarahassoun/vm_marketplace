@@ -8,7 +8,6 @@ const steps = [
   { label: "Storage", href: "/build-vm/storage" },
   { label: "Network", href: "/build-vm/network" },
   { label: "Region", href: "/build-vm/region" },
-  { label: "Add-ons", href: "/build-vm/details" },
   { label: "Details", href: "/build-vm/details" },
   { label: "Review", href: "/build-vm/review" },
 ]
