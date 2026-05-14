@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import {
   ArrowLeft,
   Boxes,
+  CheckCircle2,
   ChevronRight,
   Cpu,
   HardDrive,
@@ -39,6 +40,7 @@ export default function BuildClusterPage() {
   const [osId, setOsId] = useState(osOptions[0].id)
   const [flavorId, setFlavorId] = useState(flavorOptions[0].id)
   const [networkMode, setNetworkMode] = useState("Existing VPC / subnet")
+  const [planGenerated, setPlanGenerated] = useState(false)
 
   const selectedOs = osOptions.find((item) => item.id === osId) ?? osOptions[0]
   const selectedFlavor =
@@ -139,7 +141,10 @@ export default function BuildClusterPage() {
                   </span>
                   <input
                     value={clusterName}
-                    onChange={(event) => setClusterName(event.target.value)}
+                    onChange={(event) => {
+                      setClusterName(event.target.value)
+                      setPlanGenerated(false)
+                    }}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                   />
                 </label>
@@ -150,7 +155,10 @@ export default function BuildClusterPage() {
                   </span>
                   <select
                     value={profile}
-                    onChange={(event) => setProfile(event.target.value)}
+                    onChange={(event) => {
+                      setProfile(event.target.value)
+                      setPlanGenerated(false)
+                    }}
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                   >
                     {clusterProfiles.map((item) => (
@@ -165,7 +173,10 @@ export default function BuildClusterPage() {
                   </span>
                   <select
                     value={osId}
-                    onChange={(event) => setOsId(event.target.value)}
+                    onChange={(event) => {
+                      setOsId(event.target.value)
+                      setPlanGenerated(false)
+                    }}
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                   >
                     {osOptions.map((item) => (
@@ -182,7 +193,10 @@ export default function BuildClusterPage() {
                   </span>
                   <select
                     value={flavorId}
-                    onChange={(event) => setFlavorId(event.target.value)}
+                    onChange={(event) => {
+                      setFlavorId(event.target.value)
+                      setPlanGenerated(false)
+                    }}
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                   >
                     {flavorOptions.map((item) => (
@@ -199,7 +213,10 @@ export default function BuildClusterPage() {
                   </span>
                   <select
                     value={networkMode}
-                    onChange={(event) => setNetworkMode(event.target.value)}
+                    onChange={(event) => {
+                      setNetworkMode(event.target.value)
+                      setPlanGenerated(false)
+                    }}
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                   >
                     <option>Existing VPC / subnet</option>
@@ -310,12 +327,61 @@ export default function BuildClusterPage() {
 
             <button
               type="button"
-              className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-500"
-              disabled
+              onClick={() => setPlanGenerated(true)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-slate-900"
             >
-              Automation planned
+              Generate deployment plan
               <ChevronRight className="h-4 w-4" />
             </button>
+
+            {planGenerated && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      Deployment plan generated
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      The cluster is ready for future automation. No cloud
+                      resources were created in this UI-only step.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3 text-sm text-slate-700">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Create 2 VM nodes: {nodes[0].name} and {nodes[1].name}
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Apply {selectedOs.name} with {selectedOs.minDisk} GB minimum
+                    disk per node
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Use {selectedFlavor.id} for both nodes
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Place both nodes in {networkMode.toLowerCase()}
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Prepare Netdata monitoring installation per node
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                    Save cluster and node metadata when backend automation is connected
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-xl bg-white px-4 py-3 text-sm font-medium text-emerald-700">
+                  Automation status: ready for backend integration
+                </div>
+              </div>
+            )}
           </aside>
         </div>
       </main>
