@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 import joblib
 import pandas as pd
-from scoring import compute_ai_scores
+from .scoring import compute_ai_scores
 
-MODEL_PATH = "models/vm_recommender.pkl"
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "models" / "vm_recommender.pkl"
 
 VM_PROFILES = {
     # ── General Purpose ──────────────────────────────────────────────────────

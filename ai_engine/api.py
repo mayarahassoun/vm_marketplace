@@ -1,26 +1,29 @@
 import os
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from llm_parser import parse_user_need
-from ai_reasoner import reason_about_request
-from predict_vm import recommend_vm, VM_PROFILES
+from .llm_parser import parse_user_need
+from .ai_reasoner import reason_about_request
+from .predict_vm import MODEL_PATH, recommend_vm, VM_PROFILES
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 # ── Auto-train model on startup if missing ────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    model_path = "models/vm_recommender.pkl"
-    if not os.path.exists(model_path):
+    if not os.path.exists(MODEL_PATH):
         print("⚙️  Model not found — running train_model.py...")
         import subprocess
         result = subprocess.run(
-            ["python", "train_model.py"],
+            ["python", str(BASE_DIR / "train_model.py")],
             capture_output=True,
             text=True,
+            cwd=BASE_DIR,
         )
         if result.returncode == 0:
             print("✅ Model trained successfully.")

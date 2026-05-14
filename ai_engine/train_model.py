@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pandas as pd
 import joblib
 
@@ -9,10 +10,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-DATASET_PATH = "dataset/vm_recommendation_dataset.csv"
-MODEL_PATH   = "models/vm_recommender.pkl"
+BASE_DIR = Path(__file__).resolve().parent
+DATASET_PATH = BASE_DIR / "dataset" / "vm_recommendation_dataset.csv"
+MODEL_PATH   = BASE_DIR / "models" / "vm_recommender.pkl"
 
-os.makedirs("models", exist_ok=True)
+os.makedirs(BASE_DIR / "models", exist_ok=True)
 
 df = pd.read_csv(DATASET_PATH)
 print(f"✅ Dataset loaded: {len(df)} rows, {df['recommended_profile'].nunique()} profiles")
