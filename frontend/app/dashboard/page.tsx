@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import {
   Bell, Settings, MoreHorizontal, RotateCcw,
   BarChart3, Terminal, Trash2, Server, Activity,
-  CreditCard, Cpu, HardDrive, Power,
+  CreditCard, Cpu, HardDrive, Power, Boxes, Network,
 } from "lucide-react"
 import { clearAuthToken, getAuthToken, listVMs, deleteVM as deleteVMApi } from "@/lib/api"
 import SSHPasswordModal from "@/components/SSHPasswordModal"
@@ -204,6 +204,74 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500">Next Billing</p>
           <h3 className="mt-3 text-4xl font-semibold text-slate-900">15 Days</h3>
           <p className="mt-2 text-sm text-slate-400">Nov 18, 2025</p>
+        </div>
+      </div>
+
+      {/* Planned clusters */}
+      <div className="mb-8 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
+              <Boxes className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Planned Clusters
+                </h2>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                  UI-only
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Prepare quota-aware multi-node deployments before connecting the
+                backend automation.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => router.push("/build-cluster")}
+            className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
+          >
+            Configure Cluster
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-4">
+            <p className="text-xs font-medium uppercase text-slate-400">
+              Cluster
+            </p>
+            <p className="mt-1 font-semibold text-slate-900">
+              cck-demo-cluster
+            </p>
+            <p className="mt-1 text-sm text-slate-500">Status: Planned</p>
+          </div>
+
+          <div className="rounded-xl bg-white p-4">
+            <p className="text-xs font-medium uppercase text-slate-400">
+              Nodes
+            </p>
+            <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
+              <Server className="h-4 w-4 text-slate-400" />
+              2 VM nodes
+            </div>
+            <p className="mt-1 text-sm text-slate-500">s6.medium.2 baseline</p>
+          </div>
+
+          <div className="rounded-xl bg-white p-4">
+            <p className="text-xs font-medium uppercase text-slate-400">
+              Network
+            </p>
+            <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
+              <Network className="h-4 w-4 text-slate-400" />
+              Same VPC / subnet
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              Monitoring planned per node
+            </p>
+          </div>
         </div>
       </div>
 
