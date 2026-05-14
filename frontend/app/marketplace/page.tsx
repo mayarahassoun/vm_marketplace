@@ -66,12 +66,20 @@ export default function MarketplacePage() {
           </p>
         </div>
 
-        <button
-          onClick={() => router.push("/build-vm/instance")}
-          className="rounded-xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-slate-900"
-        >
-          + Build Custom VM
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/build-cluster")}
+            className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            + Mini VM Cluster
+          </button>
+          <button
+            onClick={() => router.push("/build-vm/instance")}
+            className="rounded-xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-slate-900"
+          >
+            + Build Custom VM
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
@@ -266,6 +274,26 @@ export default function MarketplacePage() {
 
         {/* Content */}
         <section>
+          <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Mini VM Cluster
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Prepare a quota-aware two-node cluster for e-learning,
+                  research labs and PFE demonstrations.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/build-cluster")}
+                className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-900"
+              >
+                Configure Cluster
+              </button>
+            </div>
+          </div>
+
           {/* Toolbar */}
           <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-slate-500">
