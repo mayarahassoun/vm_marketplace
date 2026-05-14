@@ -32,7 +32,8 @@ export default function BuildVMReviewPage() {
   const [confirmed, setConfirmed] = useState(false)
 
   const selectedImage = VM_IMAGES.find((image) => image.id === data.os)
-  const minDisk = selectedImage?.minDisk
+  const requiredDisk = selectedImage?.minDisk ?? data.storageSize
+  const meetsDiskRequirement = data.storageSize >= requiredDisk
 
   const total =
     data.instancePrice +
@@ -41,15 +42,16 @@ export default function BuildVMReviewPage() {
     data.regionPrice
 
   const missingRequirements = [
-    !vmNameRegex.test(data.vmName || "") ? "nom VM valide" : null,
-    !passwordRegex.test(data.password || "") ? "mot de passe administrateur valide" : null,
+    !vmNameRegex.test(data.vmName || "") ? "a valid VM name" : null,
+    !passwordRegex.test(data.password || "") ? "a valid administrator password" : null,
+    !meetsDiskRequirement ? "a system disk that meets the selected image minimum" : null,
   ].filter(Boolean)
 
   const canProceed = missingRequirements.length === 0
 
   function handleDeploy() {
     if (!canProceed) {
-      setError("Veuillez completer les informations obligatoires avant de continuer.")
+      setError("Please complete the required configuration before continuing.")
       return
     }
 
@@ -108,18 +110,17 @@ export default function BuildVMReviewPage() {
             {!canProceed && (
               <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
                 <h2 className="text-lg font-semibold text-amber-900">
-                  Configuration incomplete
+                  Incomplete configuration
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-amber-800">
-                  Avant de passer au paiement, veuillez renseigner un{" "}
-                  {missingRequirements.join(" et ")}.
+                  Before payment, please provide {missingRequirements.join(" and ")}.
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push("/build-vm/details")}
                   className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-950"
                 >
-                  Completer les details
+                  Complete details
                 </button>
               </div>
             )}
@@ -168,7 +169,7 @@ export default function BuildVMReviewPage() {
                       </span>
                     </div>
                     <div className="text-sm text-slate-500">
-                      Minimum required: {minDisk ?? data.storageSize} GB
+                      Image minimum: {requiredDisk} GB
                     </div>
                   </div>
 
@@ -190,10 +191,10 @@ export default function BuildVMReviewPage() {
                       <Network className="h-4 w-4 text-violet-500" />
                       <span className="font-semibold">
                         {data.vpcMode === "existing"
-                          ? `Existing VPC — ${
+                          ? `Existing VPC - ${
                               data.subnetId || "no subnet selected"
                             }`
-                          : `New VPC — ${data.vpcName || "unnamed"} (${
+                          : `New VPC - ${data.vpcName || "unnamed"} (${
                               data.vpcCidr || "no CIDR"
                             })`}
                       </span>
@@ -211,9 +212,6 @@ export default function BuildVMReviewPage() {
                       <span className="font-semibold">
                         {data.osName || "Not selected"}
                       </span>
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      Minimum disk required: {minDisk ?? data.storageSize} GB
                     </div>
                   </div>
 
@@ -259,6 +257,23 @@ export default function BuildVMReviewPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-8 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 text-blue-600" />
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Technical validation
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      The selected image requires at least {requiredDisk} GB of
+                      system disk. This configuration provides {data.storageSize} GB,
+                      so it is compatible with {data.osName || "the selected OS"}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-8">
                 <button
                   type="button"
@@ -419,3 +434,4 @@ export default function BuildVMReviewPage() {
     </div>
   )
 }
+
