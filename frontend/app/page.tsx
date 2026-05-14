@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import {
   Zap,
   Shield,
@@ -12,6 +11,7 @@ import {
   HardDrive,
   MemoryStick,
 } from "lucide-react"
+import AppLogo from "@/components/AppLogo"
 
 const featuredVMs = [
   {
@@ -58,15 +58,7 @@ export default function HomePage() {
       {/* HEADER */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center">
-            <Image
-  src="/logo.svg"
-  alt="VM Marketplace"
-  width={180}
-  height={60}
-  className="h-16 w-auto object-contain"
-/>
-          </Link>
+          <AppLogo />
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
             <Link href="/marketplace" className="hover:text-slate-900">
