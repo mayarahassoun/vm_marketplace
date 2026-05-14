@@ -137,14 +137,12 @@ export default function BuildVMOSPage() {
                       disabled={!isReady}
                       onChange={() =>
                         setData((prev) => {
-                          const storageSize = Math.max(prev.storageSize, img.minDisk)
-
                           return {
                             ...prev,
                             os: img.id,
                             osName: img.name,
-                            storageSize,
-                            storagePrice: getStoragePrice(storageSize),
+                            storageSize: img.minDisk,
+                            storagePrice: getStoragePrice(img.minDisk),
                           }
                         })
                       }

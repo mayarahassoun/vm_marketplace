@@ -7,10 +7,16 @@ import { useMemo } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
+import { VM_IMAGES } from "@/lib/api"
+
+const getStoragePrice = (size: number) => (size >= 100 ? 10 : 5)
 
 export default function BuildVMStoragePage() {
   const router = useRouter()
   const { data, setData } = useBuildVM()
+
+  const selectedImage = VM_IMAGES.find((image) => image.id === data.os)
+  const minStorageSize = selectedImage?.minDisk ?? 20
 
   const additionalDisksTotal = useMemo(
     () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
@@ -87,24 +93,27 @@ export default function BuildVMStoragePage() {
 
                   <input
                     type="range"
-                    min="20"
+                    min={minStorageSize}
                     max="2000"
-                    step="20"
+                    step="10"
                     value={data.storageSize}
                     onChange={(e) =>
                       setData((prev) => ({
                         ...prev,
                         storageSize: Number(e.target.value),
-                        storagePrice: Number(e.target.value) >= 100 ? 10 : 5,
+                        storagePrice: getStoragePrice(Number(e.target.value)),
                       }))
                     }
                     className="w-full accent-black"
                   />
 
                   <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
-                    <span>20 GB</span>
+                    <span>{minStorageSize} GB</span>
                     <span>2000 GB</span>
                   </div>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Minimum requis par {data.osName}: {minStorageSize} GB.
+                  </p>
                 </div>
 
                 <div>
