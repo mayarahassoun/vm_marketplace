@@ -16,33 +16,39 @@ import {
 const featuredVMs = [
   {
     id: 1,
-    name: "Ubuntu 22.04 LTS",
-    price: "$5.99/month",
+    name: "University Web Portal",
+    price: "$10/month",
     rating: "4.8",
     cpu: "1 vCPU",
     ram: "2 GB",
-    storage: "50 GB SSD",
-    os: "Ubuntu 22.04",
+    storage: "30 GB SSD",
+    os: "Ubuntu Server 22",
+    description:
+      "Small VM profile for faculty websites, student services and lightweight administrative portals.",
   },
   {
     id: 2,
-    name: "Windows Server 2022",
-    price: "$24.99/month",
+    name: "E-learning Platform",
+    price: "$20/month",
     rating: "4.6",
     cpu: "2 vCPU",
     ram: "4 GB",
-    storage: "80 GB SSD",
-    os: "Windows Server",
+    storage: "60 GB Business_SSD",
+    os: "Debian 11",
+    description:
+      "Balanced configuration for Moodle-style platforms, online courses and academic collaboration tools.",
   },
   {
     id: 3,
-    name: "Data Science Workbench",
-    price: "$12.99/month",
+    name: "Research Lab Workspace",
+    price: "$40/month",
     rating: "4.9",
     cpu: "4 vCPU",
     ram: "8 GB",
-    storage: "100 GB SSD",
+    storage: "100 GB Business_SSD",
     os: "Ubuntu 24.04",
+    description:
+      "Compute-ready VM for student projects, data processing, development environments and PFE prototypes.",
   },
 ]
 
@@ -173,7 +179,7 @@ export default function HomePage() {
             Featured Virtual Machines
           </h2>
           <p className="mt-3 text-slate-500">
-            Explore our most popular and highly-rated virtual machines.
+            Explore VM profiles designed for Tunisian academic and research use cases.
           </p>
         </div>
 
@@ -198,7 +204,7 @@ export default function HomePage() {
                 </div>
 
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  General purpose virtual machine with balanced CPU, memory and storage.
+                  {vm.description}
                 </p>
 
                 <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600">
