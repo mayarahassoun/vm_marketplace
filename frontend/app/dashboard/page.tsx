@@ -137,11 +137,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#fafafa] px-8 py-8">
 
       {/* Top bar */}
-      <div className="mb-8 flex items-center justify-between border-b border-slate-200 pb-4">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Cloud workspace</p>
-          <p className="mt-1 text-xs text-slate-400">MESRS Cloud resource management</p>
-        </div>
+      <div className="mb-8 flex items-center justify-end border-b border-slate-200 pb-4">
         <div className="flex items-center gap-4">
           <button className="relative rounded-lg p-2 hover:bg-slate-100">
             <Bell className="h-5 w-5 text-slate-500 hover:text-slate-800" />
