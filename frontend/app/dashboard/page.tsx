@@ -164,20 +164,20 @@ export default function DashboardPage() {
             Manage your virtual machines and monitor usage
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <button
             onClick={() => router.push("/marketplace")}
-            className="rounded-xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-slate-900"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900"
           >
-            + Deploy New VM
+            Deploy New VM
           </button>
           <Link
-  href="/ai-recommendation"
-  className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
->
-  AI VM Recommendation
-</Link>
-          <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 hover:bg-slate-50">
+            href="/ai-recommendation"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+          >
+            AI Recommendation
+          </Link>
+          <button className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50">
             <Settings className="h-5 w-5" />
           </button>
         </div>
