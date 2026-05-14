@@ -11,7 +11,7 @@ import {
   EyeOff,
   ShieldCheck,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
@@ -27,15 +27,9 @@ export default function BuildVMDetailsPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const additionalDisksTotal = useMemo(
-    () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
-    [data.additionalDisks]
-  )
-
   const total =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 
@@ -403,17 +397,6 @@ export default function BuildVMDetailsPage() {
                   ${data.storagePrice}/mo
                 </span>
               </div>
-
-              {additionalDisksTotal > 0 && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">
-                    Additional {data.additionalDisks.length} data disk(s)
-                  </span>
-                  <span className="font-medium text-slate-700">
-                    ${additionalDisksTotal}/mo
-                  </span>
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">

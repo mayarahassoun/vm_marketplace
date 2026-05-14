@@ -78,7 +78,7 @@ export function BuildVMProvider({ children }: { children: React.ReactNode }) {
     storageSize: 100,
     storageType: "SSD",
     storagePrice: 10,
-    additionalDisks: [{ id: 1, label: "100 GB SSD", price: 10 }],
+    additionalDisks: [],
 
     bandwidthType: "External-01",
     bandwidthName: "",

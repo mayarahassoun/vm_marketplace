@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronRight, HardDrive, Plus, Trash2 } from "lucide-react"
-import { useMemo } from "react"
+import { ArrowLeft, ChevronRight, HardDrive } from "lucide-react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
@@ -18,15 +17,9 @@ export default function BuildVMStoragePage() {
   const selectedImage = VM_IMAGES.find((image) => image.id === data.os)
   const minStorageSize = selectedImage?.minDisk ?? 20
 
-  const additionalDisksTotal = useMemo(
-    () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
-    [data.additionalDisks]
-  )
-
   const total =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 
@@ -164,66 +157,6 @@ export default function BuildVMStoragePage() {
                   </div>
                 </div>
               </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-6">
-                <div className="mb-6">
-                  <div className="flex items-center gap-3">
-                    <HardDrive className="h-5 w-5 text-blue-500" />
-                    <h2 className="text-2xl font-semibold text-slate-900">Data Disks</h2>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Add additional data disks to your VM
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {data.additionalDisks.map((disk) => (
-                    <div
-                      key={disk.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-4"
-                    >
-                      <div>
-                        <div className="text-lg font-semibold text-slate-900">{disk.label}</div>
-                        <div className="text-sm text-slate-500">${disk.price}/mo</div>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          setData((prev) => ({
-                            ...prev,
-                            additionalDisks: prev.additionalDisks.filter(
-                              (item) => item.id !== disk.id
-                            ),
-                          }))
-                        }
-                        className="text-red-500 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() =>
-                    setData((prev) => ({
-                      ...prev,
-                      additionalDisks: [
-                        ...prev.additionalDisks,
-                        {
-                          id: Date.now(),
-                          label: "100 GB SSD",
-                          price: 10,
-                        },
-                      ],
-                    }))
-                  }
-                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-medium text-white hover:bg-slate-900"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Data Disk
-                </button>
-              </div>
             </div>
 
             <div className="mt-6 flex items-center justify-between">
@@ -259,15 +192,6 @@ export default function BuildVMStoragePage() {
                 </span>
                 <span className="font-semibold text-slate-900">${data.storagePrice}/mo</span>
               </div>
-
-              {additionalDisksTotal > 0 && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">
-                    Additional {data.additionalDisks.length} data disk(s)
-                  </span>
-                  <span className="font-medium text-slate-700">${additionalDisksTotal}/mo</span>
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">

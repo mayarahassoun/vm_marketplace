@@ -15,10 +15,10 @@ import {
   CheckCircle2,
   LockKeyhole,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
-import { getAuthToken } from "@/lib/api"
+import { getAuthToken, VM_IMAGES } from "@/lib/api"
 import BuildVMSteps from "../BuildVMSteps"
 
 const vmNameRegex = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])$/
@@ -31,15 +31,12 @@ export default function BuildVMReviewPage() {
   const [error, setError] = useState<string | null>(null)
   const [confirmed, setConfirmed] = useState(false)
 
-  const additionalDisksTotal = useMemo(
-    () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
-    [data.additionalDisks]
-  )
+  const selectedImage = VM_IMAGES.find((image) => image.id === data.os)
+  const minDisk = selectedImage?.minDisk
 
   const total =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 
@@ -171,7 +168,7 @@ export default function BuildVMReviewPage() {
                       </span>
                     </div>
                     <div className="text-sm text-slate-500">
-                      + {data.additionalDisks.length} additional disk(s)
+                      Minimum required: {minDisk ?? data.storageSize} GB
                     </div>
                   </div>
 
@@ -214,6 +211,9 @@ export default function BuildVMReviewPage() {
                       <span className="font-semibold">
                         {data.osName || "Not selected"}
                       </span>
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      Minimum disk required: {minDisk ?? data.storageSize} GB
                     </div>
                   </div>
 
@@ -259,26 +259,6 @@ export default function BuildVMReviewPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="mt-8 border-t border-slate-200 pt-6">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Additional Disks</span>
-                  <span className="font-medium text-slate-900">
-                    ${additionalDisksTotal}/mo
-                  </span>
-                </div>
-
-                <div className="mt-2 space-y-1 text-sm text-slate-500">
-                  {data.additionalDisks.length > 0 ? (
-                    data.additionalDisks.map((disk) => (
-                      <div key={disk.id}>{disk.label}</div>
-                    ))
-                  ) : (
-                    <div>No additional disks selected</div>
-                  )}
-                </div>
-              </div>
-
               <div className="mt-8">
                 <button
                   type="button"
@@ -315,17 +295,6 @@ export default function BuildVMReviewPage() {
                     ${data.storagePrice}/mo
                   </span>
                 </div>
-
-                {additionalDisksTotal > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">
-                      Additional {data.additionalDisks.length} disk(s)
-                    </span>
-                    <span className="font-medium text-slate-700">
-                      ${additionalDisksTotal}/mo
-                    </span>
-                  </div>
-                )}
 
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">

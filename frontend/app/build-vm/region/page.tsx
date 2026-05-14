@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronRight, Globe } from "lucide-react"
-import { useMemo } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
@@ -25,15 +24,9 @@ export default function BuildVMRegionPage() {
   const router = useRouter()
   const { data, setData } = useBuildVM()
 
-  const additionalDisksTotal = useMemo(
-    () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
-    [data.additionalDisks]
-  )
-
   const total =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 
@@ -153,15 +146,6 @@ export default function BuildVMRegionPage() {
                 </span>
                 <span className="font-semibold text-slate-900">${data.storagePrice}/mo</span>
               </div>
-
-              {additionalDisksTotal > 0 && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">
-                    Additional {data.additionalDisks.length} data disk(s)
-                  </span>
-                  <span className="font-medium text-slate-700">${additionalDisksTotal}/mo</span>
-                </div>
-              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">

@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   ChevronDown,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import { loadStripe } from "@stripe/stripe-js"
 import {
@@ -50,15 +50,9 @@ function PaymentForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const additionalDisksTotal = useMemo(
-    () => data.additionalDisks.reduce((sum, disk) => sum + disk.price, 0),
-    [data.additionalDisks]
-  )
-
   const unitPrice =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 

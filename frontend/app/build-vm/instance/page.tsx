@@ -101,15 +101,9 @@ export default function BuildVMInstancePage() {
   const [ramFilter, setRamFilter] = useState("All")
   const [searchFlavor, setSearchFlavor] = useState("")
 
-  const additionalDisksTotal = data.additionalDisks.reduce(
-    (sum, disk) => sum + disk.price,
-    0
-  )
-
   const total =
     data.instancePrice +
     data.storagePrice +
-    additionalDisksTotal +
     data.networkPrice +
     data.regionPrice
 
@@ -366,16 +360,6 @@ export default function BuildVMInstancePage() {
                   </span>
                   <span className="font-semibold text-slate-900">${data.storagePrice}/mo</span>
                 </div>
-                {additionalDisksTotal > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">
-                      Additional {data.additionalDisks.length} disk(s)
-                    </span>
-                    <span className="font-medium text-slate-700">
-                      ${additionalDisksTotal}/mo
-                    </span>
-                  </div>
-                )}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500">
                     Network ({data.bandwidthSize} Mbps)
