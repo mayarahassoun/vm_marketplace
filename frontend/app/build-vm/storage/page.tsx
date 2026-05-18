@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronRight, HardDrive } from "lucide-react"
+import { useEffect } from "react"
 import { useBuildVM } from "../BuildVMContext"
 import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
@@ -16,6 +17,18 @@ export default function BuildVMStoragePage() {
 
   const selectedImage = VM_IMAGES.find((image) => image.id === data.os)
   const minStorageSize = selectedImage?.minDisk ?? 20
+
+  useEffect(() => {
+    setData((prev) => {
+      if (prev.storageSize === minStorageSize) return prev
+
+      return {
+        ...prev,
+        storageSize: minStorageSize,
+        storagePrice: getStoragePrice(minStorageSize),
+      }
+    })
+  }, [data.os, minStorageSize, setData])
 
   const total =
     data.instancePrice +

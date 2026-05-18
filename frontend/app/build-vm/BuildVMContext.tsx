@@ -75,9 +75,9 @@ export function BuildVMProvider({ children }: { children: React.ReactNode }) {
     os: "7f22f4d8-4863-45d6-befe-d19ba7e7563a",
     osName: "Ubuntu-Server-24",
 
-    storageSize: 100,
+    storageSize: 10,
     storageType: "SSD",
-    storagePrice: 10,
+    storagePrice: 5,
     additionalDisks: [],
 
     bandwidthType: "External-01",
