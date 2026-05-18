@@ -12,6 +12,7 @@ from app.models import user, virtual_machine
 from app.api.ssh import router as ssh_router
 from app.api.payment import router as payment_router
 from app.api.monitoring import router as monitoring_router
+from app.api.manageone import router as manageone_router
 
 
 Base.metadata.create_all(bind=engine)
@@ -31,6 +32,7 @@ app.include_router(vm_router)
 app.include_router(ssh_router)
 app.include_router(payment_router)
 app.include_router(monitoring_router)
+app.include_router(manageone_router)
 
 
 @app.get("/")
