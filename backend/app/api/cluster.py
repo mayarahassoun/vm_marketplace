@@ -103,10 +103,10 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         tf_result = run_terraform_cluster(payload.cluster_data)
         _update(store, 2, "complete", 40)
 
-        master_public_ip  = tf_result["master_public_ip"]
-        master_private_ip = tf_result["master_private_ip"]
-        worker_public_ips = tf_result["worker_public_ips"]
-        password          = payload.cluster_data["administrator_password"]
+        master_public_ip   = tf_result["master_public_ip"]
+        master_private_ip  = tf_result["master_private_ip"]
+        worker_private_ips = tf_result["worker_private_ips"]
+        password           = payload.cluster_data["administrator_password"]
 
         # ── Save cluster record (status=creating) ──────────────────────────
         cluster = Cluster(
@@ -123,7 +123,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
             system_disk_size=payload.cluster_data["system_disk_size"],
             master_public_ip=master_public_ip,
             master_private_ip=master_private_ip,
-            worker_public_ips=json.dumps(worker_public_ips),
+            worker_public_ips=json.dumps(worker_private_ips),
         )
         db.add(cluster)
         db.commit()
@@ -136,7 +136,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         kubeconfig = install_kubernetes(
             master_public_ip=master_public_ip,
             master_private_ip=master_private_ip,
-            worker_public_ips=worker_public_ips,
+            worker_private_ips=worker_private_ips,
             password=password,
         )
 
@@ -166,7 +166,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
                             <p><strong>Name:</strong> {cluster.name}</p>
                             <p><strong>Master IP:</strong> {master_public_ip}</p>
                             <p><strong>Workers:</strong> {cluster.worker_count} node(s)</p>
-                            <p><strong>Worker IPs:</strong> {', '.join(worker_public_ips)}</p>
+                            <p><strong>Worker Private IPs:</strong> {', '.join(worker_private_ips)}</p>
                         </div>
                         <p style="color:#64748b;font-size:14px;">
                             API Server:<br/>
@@ -245,7 +245,7 @@ def list_clusters(
             "status": c.status,
             "worker_count": c.worker_count,
             "master_public_ip": c.master_public_ip,
-            "worker_public_ips": json.loads(c.worker_public_ips) if c.worker_public_ips else [],
+            "worker_private_ips": json.loads(c.worker_public_ips) if c.worker_public_ips else [],
             "master_flavor_id": c.master_flavor_id,
             "worker_flavor_id": c.worker_flavor_id,
             "image_id": c.image_id,

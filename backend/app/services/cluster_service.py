@@ -71,18 +71,58 @@ systemctl enable kubelet
 """
 
 
-def _ssh_connect(ip: str, password: str, max_retries: int = 12, delay: int = 15) -> paramiko.SSHClient:
+def _ssh_connect(ip: str, password: str, max_retries: int = 20, delay: int = 20) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     for attempt in range(max_retries):
         try:
-            client.connect(hostname=ip, username="root", password=password, timeout=15)
+            client.connect(
+                hostname=ip,
+                username="root",
+                password=password,
+                timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
+            )
             return client
         except Exception as exc:
             print(f"  SSH {ip}: attempt {attempt + 1}/{max_retries} — {exc}")
             if attempt < max_retries - 1:
                 time.sleep(delay)
     raise RuntimeError(f"Cannot SSH into {ip} after {max_retries} attempts")
+
+
+def _ssh_connect_via_jump(
+    jump_client: paramiko.SSHClient,
+    target_ip: str,
+    password: str,
+    max_retries: int = 15,
+    delay: int = 20,
+) -> paramiko.SSHClient:
+    """Connect to a private-network node through the master as a jump host."""
+    for attempt in range(max_retries):
+        try:
+            transport = jump_client.get_transport()
+            channel = transport.open_channel(
+                "direct-tcpip", (target_ip, 22), ("127.0.0.1", 0)
+            )
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(
+                hostname=target_ip,
+                username="root",
+                password=password,
+                sock=channel,
+                timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
+            )
+            return client
+        except Exception as exc:
+            print(f"  SSH jump {target_ip}: attempt {attempt + 1}/{max_retries} — {exc}")
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+    raise RuntimeError(f"Cannot SSH into {target_ip} via jump host after {max_retries} attempts")
 
 
 def _run_ssh(client: paramiko.SSHClient, cmd: str, timeout: int = 600) -> str:
@@ -161,7 +201,6 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
     return {
         "master_public_ip": _val("master_public_ip"),
         "master_private_ip": _val("master_private_ip"),
-        "worker_public_ips": _val("worker_public_ips") or [],
         "worker_private_ips": _val("worker_private_ips") or [],
     }
 
@@ -188,35 +227,36 @@ def destroy_terraform_cluster(cluster_name: str) -> None:
 def install_kubernetes(
     master_public_ip: str,
     master_private_ip: str,
-    worker_public_ips: list[str],
+    worker_private_ips: list[str],
     password: str,
 ) -> str:
     """
-    Bootstrap a K8s cluster. Returns the kubeconfig (with public API server URL)
-    that the end-user can use with kubectl.
+    Bootstrap a K8s cluster. Workers are reached via the master as a jump host
+    (no public IP needed on worker nodes). Returns kubeconfig with public API URL.
     """
-    all_ips = [master_public_ip] + worker_public_ips
-
     # ── 1. Wait for VMs to finish booting ────────────────────────────────────
-    print("⏳ Waiting 90 s for VMs to finish booting...")
-    time.sleep(90)
+    print("⏳ Waiting 120 s for VMs to finish booting...")
+    time.sleep(120)
 
-    # ── 2. Install containerd + kubeadm on every node ────────────────────────
-    print("📦 Installing K8s prerequisites on all nodes...")
-    connections: list[paramiko.SSHClient] = []
-    for ip in all_ips:
-        print(f"  Connecting to {ip}...")
-        conn = _ssh_connect(ip, password)
-        connections.append(conn)
+    # ── 2. Connect to master ──────────────────────────────────────────────────
+    print(f"📦 Connecting to master {master_public_ip}...")
+    master_conn = _ssh_connect(master_public_ip, password)
 
-    for ip, conn in zip(all_ips, connections):
-        print(f"  Installing on {ip}...")
+    # ── 3. Install K8s prerequisites on master ────────────────────────────────
+    print("  Installing K8s prerequisites on master...")
+    _run_ssh(master_conn, _K8S_PREREQ, timeout=600)
+
+    # ── 4. Connect to workers via master (jump host) and install prereqs ──────
+    worker_conns: list[paramiko.SSHClient] = []
+    for priv_ip in worker_private_ips:
+        print(f"  Connecting to worker {priv_ip} via jump...")
+        conn = _ssh_connect_via_jump(master_conn, priv_ip, password)
+        worker_conns.append(conn)
+        print(f"  Installing K8s prerequisites on worker {priv_ip}...")
         _run_ssh(conn, _K8S_PREREQ, timeout=600)
 
-    # ── 3. kubeadm init on master ─────────────────────────────────────────────
-    master_conn = connections[0]
-    print(f"🚀 Running kubeadm init on master ({master_public_ip})...")
-
+    # ── 5. kubeadm init on master ─────────────────────────────────────────────
+    print(f"🚀 Running kubeadm init on master ({master_private_ip})...")
     init_cmd = (
         f"kubeadm init "
         f"--pod-network-cidr=10.244.0.0/16 "
@@ -226,7 +266,6 @@ def install_kubernetes(
     )
     _run_ssh(master_conn, init_cmd, timeout=300)
 
-    # Setup kubeconfig for root on master
     kubeconfig_setup = (
         "mkdir -p $HOME/.kube && "
         "cp -f /etc/kubernetes/admin.conf $HOME/.kube/config && "
@@ -234,7 +273,7 @@ def install_kubernetes(
     )
     _run_ssh(master_conn, kubeconfig_setup)
 
-    # ── 4. Deploy Flannel CNI ─────────────────────────────────────────────────
+    # ── 6. Deploy Flannel CNI ─────────────────────────────────────────────────
     print("🌐 Deploying Flannel CNI...")
     _run_ssh(
         master_conn,
@@ -242,28 +281,27 @@ def install_kubernetes(
         timeout=120,
     )
 
-    # ── 5. Get join command ───────────────────────────────────────────────────
+    # ── 7. Get join command and join workers ──────────────────────────────────
     join_command = _run_ssh(
         master_conn,
         "kubeadm token create --print-join-command",
     ).strip()
-    print(f"  Join command obtained.")
 
-    # ── 6. Join workers ───────────────────────────────────────────────────────
-    for ip, conn in zip(worker_public_ips, connections[1:]):
-        print(f"  Worker {ip} joining cluster...")
+    for priv_ip, conn in zip(worker_private_ips, worker_conns):
+        print(f"  Worker {priv_ip} joining cluster...")
         _run_ssh(conn, join_command, timeout=180)
 
-    # ── 7. Retrieve kubeconfig and rewrite server URL to public IP ────────────
+    # ── 8. Retrieve kubeconfig and rewrite server URL to public IP ────────────
     raw_kubeconfig = _run_ssh(master_conn, "cat /etc/kubernetes/admin.conf")
     kubeconfig = raw_kubeconfig.replace(
         f"https://{master_private_ip}:6443",
         f"https://{master_public_ip}:6443",
     )
 
-    # ── 8. Close all SSH connections ──────────────────────────────────────────
-    for conn in connections:
+    # ── 9. Close all SSH connections ──────────────────────────────────────────
+    for conn in worker_conns:
         conn.close()
+    master_conn.close()
 
     print("✅ Kubernetes cluster is ready.")
     return kubeconfig

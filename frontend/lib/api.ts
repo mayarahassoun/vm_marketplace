@@ -142,7 +142,7 @@
     status: string
     worker_count: number
     master_public_ip: string | null
-    worker_public_ips: string[]
+    worker_private_ips: string[]
     master_flavor_id: string
     worker_flavor_id: string
     image_id: string

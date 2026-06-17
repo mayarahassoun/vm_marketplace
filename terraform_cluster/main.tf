@@ -94,27 +94,8 @@ resource "hcs_ecs_compute_instance" "workers" {
   admin_pass = var.administrator_password
 }
 
-resource "hcs_vpc_eip" "worker_eips" {
-  count      = var.worker_count
-  depends_on = [hcs_ecs_compute_instance.workers]
-
-  publicip {
-    type = "External-01"
-  }
-  bandwidth {
-    name       = "bw-${var.cluster_name}-worker-${count.index + 1}"
-    size       = 5
-    share_type = "PER"
-  }
-}
-
-resource "hcs_vpc_eip_associate" "worker_eip_assocs" {
-  count     = var.worker_count
-  public_ip = hcs_vpc_eip.worker_eips[count.index].address
-  port_id   = hcs_ecs_compute_instance.workers[count.index].network[0].port
-}
-
 # ─── Outputs ─────────────────────────────────────────────────────────────────
+# Note: workers are only reachable via the master node (jump host). No EIP needed.
 
 output "master_id" {
   value = hcs_ecs_compute_instance.master.id
@@ -130,10 +111,6 @@ output "master_private_ip" {
 
 output "worker_ids" {
   value = [for w in hcs_ecs_compute_instance.workers : w.id]
-}
-
-output "worker_public_ips" {
-  value = [for eip in hcs_vpc_eip.worker_eips : eip.address]
 }
 
 output "worker_private_ips" {
