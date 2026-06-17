@@ -17,9 +17,24 @@ provider "hcs" {
 }
 
 data "hcs_availability_zones" "zones" {}
+data "hcs_ecs_compute_flavors" "all" {}
 
 locals {
   selected_az = data.hcs_availability_zones.zones.names[0]
+
+  # Resolve master flavor: match by name OR id (same pattern as terraform_test)
+  master_flavors = [
+    for f in data.hcs_ecs_compute_flavors.all.flavors : f
+    if f.id == var.master_flavor_id || f.name == var.master_flavor_id
+  ]
+  resolved_master_flavor_id = length(local.master_flavors) > 0 ? local.master_flavors[0].id : var.master_flavor_id
+
+  # Resolve worker flavor
+  worker_flavors = [
+    for f in data.hcs_ecs_compute_flavors.all.flavors : f
+    if f.id == var.worker_flavor_id || f.name == var.worker_flavor_id
+  ]
+  resolved_worker_flavor_id = length(local.worker_flavors) > 0 ? local.worker_flavors[0].id : var.worker_flavor_id
 }
 
 # ─── Master node ────────────────────────────────────────────────────────────
@@ -27,7 +42,7 @@ locals {
 resource "hcs_ecs_compute_instance" "master" {
   name                      = "${var.cluster_name}-master"
   availability_zone         = local.selected_az
-  flavor_id                 = var.master_flavor_id
+  flavor_id                 = local.resolved_master_flavor_id
   image_id                  = trimspace(var.image_id)
   delete_eip_on_termination = false
   security_group_ids        = [var.security_group_id]
@@ -65,7 +80,7 @@ resource "hcs_ecs_compute_instance" "workers" {
   count                     = var.worker_count
   name                      = "${var.cluster_name}-worker-${count.index + 1}"
   availability_zone         = local.selected_az
-  flavor_id                 = var.worker_flavor_id
+  flavor_id                 = local.resolved_worker_flavor_id
   image_id                  = trimspace(var.image_id)
   delete_eip_on_termination = false
   security_group_ids        = [var.security_group_id]
