@@ -5,9 +5,15 @@ import { useEffect, useRef, useState } from "react"
 import {
   Bell, Settings, MoreHorizontal, RotateCcw,
   BarChart3, Terminal, Trash2, Server, Activity,
-  CreditCard, Cpu, HardDrive, Power, Boxes, Network,
+  CreditCard, Cpu, HardDrive, Power, Boxes,
 } from "lucide-react"
-import { clearAuthToken, getAuthToken, listVMs, deleteVM as deleteVMApi } from "@/lib/api"
+import {
+  clearAuthToken, getAuthToken,
+  listVMs, deleteVM as deleteVMApi,
+  listClusters, deleteCluster as deleteClusterApi,
+  downloadKubeconfig,
+  type ClusterSummary,
+} from "@/lib/api"
 import SSHPasswordModal from "@/components/SSHPasswordModal"
 import Link from "next/link"
 
@@ -49,18 +55,24 @@ export default function DashboardPage() {
   const [sshTarget, setSshTarget] = useState<{ ip: string; name: string } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    async function fetchVMs() {
-      try {
-        const token = getAuthToken()
-        if (!token) {
-          router.push("/auth/login")
-          return
-        }
+  // Clusters
+  const [clusters, setClusters] = useState<ClusterSummary[]>([])
+  const [clusterToDelete, setClusterToDelete] = useState<number | null>(null)
+  const [clusterDeleteLoading, setClusterDeleteLoading] = useState(false)
+  const [clusterDeleteError, setClusterDeleteError] = useState<string | null>(null)
 
-        const data = (await listVMs(token)) as BackendVM[]
+  useEffect(() => {
+    async function fetchAll() {
+      const token = getAuthToken()
+      if (!token) { router.push("/auth/login"); return }
+
+      try {
+        const [vmData, clusterData] = await Promise.all([
+          listVMs(token) as Promise<BackendVM[]>,
+          listClusters(token),
+        ])
         setVms(
-          data.map((vm) => ({
+          vmData.map((vm) => ({
             id: vm.id,
             name: vm.instance_name,
             image: vm.image_id,
@@ -73,6 +85,7 @@ export default function DashboardPage() {
             netdata_url: vm.netdata_url,
           }))
         )
+        setClusters(clusterData)
       } catch (e: unknown) {
         if (e instanceof Error && e.message === "UNAUTHORIZED") {
           clearAuthToken()
@@ -84,8 +97,23 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
-    fetchVMs()
+    fetchAll()
   }, [router])
+
+  async function handleDownloadKubeconfig(clusterId: number) {
+    const token = getAuthToken()
+    if (!token) return
+    try {
+      const kc = await downloadKubeconfig(token, clusterId)
+      const blob = new Blob([kc], { type: "text/yaml" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "kubeconfig.yaml"
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -131,7 +159,6 @@ export default function DashboardPage() {
 
   const runningCount = vms.filter((v) => v.status === "running").length
   const monitoringReadyCount = vms.filter((v) => Boolean(v.netdata_url)).length
-  const plannedClustersCount = 1
 
   return (
     <div className="min-h-screen bg-[#fafafa] px-8 py-8">
@@ -214,8 +241,8 @@ export default function DashboardPage() {
             <p className="text-sm text-slate-500">Planned Clusters</p>
             <Boxes className="h-5 w-5 text-blue-500" />
           </div>
-          <h3 className="mt-3 text-4xl font-semibold text-slate-900">{plannedClustersCount}</h3>
-          <p className="mt-2 text-sm text-slate-400">UI-only automation plan</p>
+          <h3 className="mt-3 text-4xl font-semibold text-slate-900">{clusters.length}</h3>
+          <p className="mt-2 text-sm text-slate-400">K8s clusters deployed</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between">
@@ -227,56 +254,121 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Planned clusters */}
-      <div className="mb-8 rounded-2xl border border-blue-100 bg-white p-5">
-        <div className="grid gap-5 xl:grid-cols-[1.1fr_2fr_auto] xl:items-center">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
-              <Boxes className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Planned Clusters
-                </h2>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
-                  Planned
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">
-                Quota-aware multi-node deployment preview.
-              </p>
-            </div>
+      {/* Kubernetes Clusters */}
+      <div className="mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Boxes className="h-5 w-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-slate-900">Kubernetes Clusters</h2>
+            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+              {clusters.length}
+            </span>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 px-4 py-3">
-              <p className="text-xs font-medium uppercase text-slate-400">Cluster</p>
-              <p className="mt-1 font-semibold text-slate-900">cck-demo-cluster</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 px-4 py-3">
-              <p className="text-xs font-medium uppercase text-slate-400">Nodes</p>
-              <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
-                <Server className="h-4 w-4 text-slate-400" />
-                2 nodes
-              </div>
-            </div>
-            <div className="rounded-xl bg-slate-50 px-4 py-3">
-              <p className="text-xs font-medium uppercase text-slate-400">Network</p>
-              <div className="mt-1 flex items-center gap-2 font-semibold text-slate-900">
-                <Network className="h-4 w-4 text-slate-400" />
-                Same subnet
-              </div>
-            </div>
-          </div>
-
           <button
             onClick={() => router.push("/build-cluster")}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-4 text-sm font-semibold text-white hover:bg-slate-900"
+            className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
           >
-            Configure
+            <Boxes className="h-4 w-4" /> New Cluster
           </button>
         </div>
+
+        {clusters.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+              <Boxes className="h-6 w-6 text-slate-400" />
+            </div>
+            <p className="mt-3 text-sm font-medium text-slate-700">No clusters yet</p>
+            <p className="mt-1 text-xs text-slate-400">Deploy a Kubernetes cluster to manage containerised workloads.</p>
+            <button
+              onClick={() => router.push("/build-cluster")}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            >
+              Deploy your first cluster
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {clusters.map((c) => (
+              <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="grid gap-4 xl:grid-cols-[1fr_2fr_auto] xl:items-center">
+                  {/* Name + status */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                      <Boxes className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{c.name}</p>
+                      <span className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        c.status === "running"   ? "bg-green-100 text-green-700" :
+                        c.status === "creating"  ? "bg-yellow-100 text-yellow-700" :
+                        c.status === "error"     ? "bg-red-100 text-red-700" :
+                        c.status === "deleting"  ? "bg-orange-100 text-orange-700" :
+                        "bg-slate-100 text-slate-600"
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          c.status === "running"  ? "bg-green-500 animate-pulse" :
+                          c.status === "creating" ? "bg-yellow-500 animate-pulse" :
+                          c.status === "error"    ? "bg-red-500" :
+                          "bg-slate-400"
+                        }`} />
+                        {c.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-medium uppercase text-slate-400">Master IP</p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-900">{c.master_public_ip ?? "—"}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-medium uppercase text-slate-400">Workers</p>
+                      <div className="mt-0.5 flex items-center gap-1 text-sm font-semibold text-slate-900">
+                        <Server className="h-3.5 w-3.5 text-slate-400" />
+                        {c.worker_count} node{c.worker_count > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-medium uppercase text-slate-400">Flavor</p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-900">{c.worker_flavor_id}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-medium uppercase text-slate-400">Created</p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                        {new Date(c.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={!c.has_kubeconfig}
+                      onClick={() => handleDownloadKubeconfig(c.id)}
+                      title={c.has_kubeconfig ? "Download kubeconfig" : "Kubeconfig not ready yet"}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                        c.has_kubeconfig
+                          ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                          : "cursor-not-allowed border-slate-100 text-slate-300"
+                      }`}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      kubeconfig
+                    </button>
+                    <button
+                      onClick={() => { setClusterToDelete(c.id); setClusterDeleteError(null) }}
+                      className="rounded-xl border border-red-100 p-2 text-red-500 hover:bg-red-50"
+                      title="Delete cluster"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -525,6 +617,56 @@ export default function DashboardPage() {
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Cluster Modal */}
+      {clusterToDelete !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="w-[420px] rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-slate-900">Delete Kubernetes Cluster</h2>
+            <p className="mt-3 text-sm text-slate-500">
+              This will run <code className="rounded bg-slate-100 px-1">terraform destroy</code> on all cluster nodes.
+              This action cannot be undone.
+            </p>
+
+            {clusterDeleteError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                {clusterDeleteError}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setClusterToDelete(null); setClusterDeleteError(null) }}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={clusterDeleteLoading}
+                onClick={async () => {
+                  if (clusterToDelete === null) return
+                  setClusterDeleteLoading(true)
+                  setClusterDeleteError(null)
+                  try {
+                    const token = getAuthToken()
+                    if (!token) { router.push("/auth/login"); return }
+                    await deleteClusterApi(token, clusterToDelete)
+                    setClusters((prev) => prev.filter((c) => c.id !== clusterToDelete))
+                    setClusterToDelete(null)
+                  } catch (e: unknown) {
+                    setClusterDeleteError(e instanceof Error ? e.message : "Failed to delete cluster")
+                  } finally {
+                    setClusterDeleteLoading(false)
+                  }
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {clusterDeleteLoading ? "Deleting..." : "Delete Cluster"}
               </button>
             </div>
           </div>

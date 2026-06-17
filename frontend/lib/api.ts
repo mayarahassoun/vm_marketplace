@@ -134,3 +134,46 @@
     if (!res.ok) throw new Error("Failed to delete VM")
     return res.json()
   }
+
+  // ============ Clusters ============
+  export type ClusterSummary = {
+    id: number
+    name: string
+    status: string
+    worker_count: number
+    master_public_ip: string | null
+    worker_public_ips: string[]
+    master_flavor_id: string
+    worker_flavor_id: string
+    image_id: string
+    system_disk_size: number
+    has_kubeconfig: boolean
+    created_at: string
+  }
+
+  export async function listClusters(token: string): Promise<ClusterSummary[]> {
+    const res = await fetch(`${API_URL}/clusters/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.status === 401) throw new Error("UNAUTHORIZED")
+    if (!res.ok) throw new Error("Failed to fetch clusters")
+    return res.json()
+  }
+
+  export async function deleteCluster(token: string, clusterId: number) {
+    const res = await fetch(`${API_URL}/clusters/${clusterId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error("Failed to delete cluster")
+    return res.json()
+  }
+
+  export async function downloadKubeconfig(token: string, clusterId: number): Promise<string> {
+    const res = await fetch(`${API_URL}/clusters/${clusterId}/kubeconfig`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error("Kubeconfig not available")
+    const { kubeconfig } = await res.json()
+    return kubeconfig
+  }
