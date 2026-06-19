@@ -50,7 +50,8 @@ resource "hcs_ecs_compute_instance" "master" {
   system_disk_size          = var.system_disk_size
 
   network {
-    uuid = var.subnet_id
+    uuid              = var.subnet_id
+    source_dest_check = false
   }
 
   admin_pass = var.administrator_password

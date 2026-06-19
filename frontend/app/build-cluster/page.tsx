@@ -405,7 +405,7 @@ export default function BuildClusterPage() {
 
   // Step 3
   const [securityGroupId, setSecurityGroupId] = useState("3953708c-a708-435d-ab3c-6ef2c0ae0388")
-  const [subnetId, setSubnetId] = useState("")
+  const [subnetId, setSubnetId] = useState("47a8cd69-519b-45fe-845b-23704f01ace6")
   const [az, setAz] = useState("tn-global-1a")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
