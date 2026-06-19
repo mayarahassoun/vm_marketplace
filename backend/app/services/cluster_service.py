@@ -28,6 +28,9 @@ _K8S_PREREQ = """
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
+# Override DNS — HCS VMs may have internal-only resolvers
+printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 114.114.114.114\\n' > /etc/resolv.conf
+
 # Disable swap permanently
 swapoff -a
 sed -i '/swap/d' /etc/fstab
@@ -40,17 +43,17 @@ overlay
 br_netfilter
 EOF
 
-# Sysctl params
+# Sysctl params (ignore warnings for unsupported keys in HCS VMs)
 cat > /etc/sysctl.d/k8s.conf <<EOF
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward                 = 1
 EOF
-sysctl --system
+sysctl --system 2>/dev/null || true
 
 # Install containerd
 apt-get update -y
-apt-get install -y containerd
+apt-get install -y --fix-missing containerd
 
 mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml
@@ -59,7 +62,7 @@ systemctl restart containerd
 systemctl enable containerd
 
 # Install kubeadm, kubelet, kubectl (K8s 1.29)
-apt-get install -y apt-transport-https ca-certificates curl gpg
+apt-get install -y --fix-missing apt-transport-https ca-certificates curl gpg
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key \
   | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
@@ -260,12 +263,33 @@ def install_kubernetes(
     print("  Installing K8s prerequisites on master...")
     _run_ssh(master_conn, _K8S_PREREQ, timeout=600)
 
-    # ── 4. Connect to workers via master (jump host) and install prereqs ──────
+    # ── 4. Enable NAT on master so workers can reach the internet ────────────
+    # Workers have private IPs only; we route their traffic through the master.
+    if worker_private_ips:
+        print("  Enabling IP masquerading on master for worker internet access...")
+        master_iface = _run_ssh(
+            master_conn,
+            "ip -o -4 route show to default | awk '{print $5}' | head -1",
+        ).strip() or "eth0"
+        _run_ssh(
+            master_conn,
+            f"echo 1 > /proc/sys/net/ipv4/ip_forward ; "
+            f"iptables -t nat -A POSTROUTING -o {master_iface} -j MASQUERADE || true",
+        )
+
+    # ── 5. Connect to workers via master (jump host) and install prereqs ──────
     worker_conns: list[paramiko.SSHClient] = []
     for priv_ip in worker_private_ips:
         print(f"  Connecting to worker {priv_ip} via jump...")
         conn = _ssh_connect_via_jump(master_conn, priv_ip, pkey=ssh_key)
         worker_conns.append(conn)
+
+        # Route worker internet traffic through master
+        _run_ssh(
+            conn,
+            f"ip route replace default via {master_private_ip} ; "
+            f"printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf",
+        )
         print(f"  Installing K8s prerequisites on worker {priv_ip}...")
         _run_ssh(conn, _K8S_PREREQ, timeout=600)
 
