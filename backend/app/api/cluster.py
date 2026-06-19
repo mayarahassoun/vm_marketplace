@@ -106,6 +106,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         master_public_ip   = tf_result["master_public_ip"]
         master_private_ip  = tf_result["master_private_ip"]
         worker_private_ips = tf_result["worker_private_ips"]
+        ssh_key            = tf_result["ssh_key"]
         password           = payload.cluster_data["administrator_password"]
 
         # ── Save cluster record (status=creating) ──────────────────────────
@@ -138,6 +139,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
             master_private_ip=master_private_ip,
             worker_private_ips=worker_private_ips,
             password=password,
+            ssh_key=ssh_key,
         )
 
         _update(store, 3, "complete", 60)

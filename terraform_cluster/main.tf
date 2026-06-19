@@ -56,10 +56,10 @@ resource "hcs_ecs_compute_instance" "master" {
   admin_pass = var.administrator_password
 
   user_data = base64encode(<<-EOT
-    #!/bin/bash
-    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-    systemctl restart sshd
+    #cloud-config
+    disable_root: false
+    ssh_authorized_keys:
+      - ${var.ssh_public_key}
   EOT
   )
 }
@@ -102,10 +102,10 @@ resource "hcs_ecs_compute_instance" "workers" {
   admin_pass = var.administrator_password
 
   user_data = base64encode(<<-EOT
-    #!/bin/bash
-    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-    systemctl restart sshd
+    #cloud-config
+    disable_root: false
+    ssh_authorized_keys:
+      - ${var.ssh_public_key}
   EOT
   )
 }

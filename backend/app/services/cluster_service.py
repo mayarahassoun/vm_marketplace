@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import shutil
@@ -71,7 +72,14 @@ systemctl enable kubelet
 """
 
 
-def _ssh_connect(ip: str, password: str, max_retries: int = 20, delay: int = 20) -> paramiko.SSHClient:
+def _generate_ssh_keypair() -> tuple[paramiko.RSAKey, str]:
+    """Generate a fresh RSA key pair. Returns (private_key, public_key_line)."""
+    key = paramiko.RSAKey.generate(2048)
+    public_key_line = f"ssh-rsa {key.get_base64()} k8s-cluster"
+    return key, public_key_line
+
+
+def _ssh_connect(ip: str, pkey: paramiko.RSAKey, max_retries: int = 20, delay: int = 20) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     for attempt in range(max_retries):
@@ -79,7 +87,7 @@ def _ssh_connect(ip: str, password: str, max_retries: int = 20, delay: int = 20)
             client.connect(
                 hostname=ip,
                 username="root",
-                password=password,
+                pkey=pkey,
                 timeout=20,
                 allow_agent=False,
                 look_for_keys=False,
@@ -95,7 +103,7 @@ def _ssh_connect(ip: str, password: str, max_retries: int = 20, delay: int = 20)
 def _ssh_connect_via_jump(
     jump_client: paramiko.SSHClient,
     target_ip: str,
-    password: str,
+    pkey: paramiko.RSAKey,
     max_retries: int = 15,
     delay: int = 20,
 ) -> paramiko.SSHClient:
@@ -111,7 +119,7 @@ def _ssh_connect_via_jump(
             client.connect(
                 hostname=target_ip,
                 username="root",
-                password=password,
+                pkey=pkey,
                 sock=channel,
                 timeout=20,
                 allow_agent=False,
@@ -149,6 +157,9 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
     for tf_file in TERRAFORM_CLUSTER_SOURCE.glob("*.tf"):
         shutil.copy2(tf_file, working_dir / tf_file.name)
 
+    # Generate a fresh SSH key pair for this cluster
+    ssh_key, public_key_line = _generate_ssh_keypair()
+
     tf_vars = {
         "access_key": os.getenv("HCS_ACCESS_KEY"),
         "secret_key": os.getenv("HCS_SECRET_KEY"),
@@ -163,6 +174,7 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
         "system_disk_type": cluster_data.get("system_disk_type", "SSD"),
         "system_disk_size": cluster_data["system_disk_size"],
         "worker_count": cluster_data["worker_count"],
+        "ssh_public_key": public_key_line,
     }
 
     missing = [k for k, v in tf_vars.items() if v in (None, "", [])]
@@ -202,6 +214,7 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
         "master_public_ip": _val("master_public_ip"),
         "master_private_ip": _val("master_private_ip"),
         "worker_private_ips": _val("worker_private_ips") or [],
+        "ssh_key": ssh_key,
     }
 
 
@@ -229,6 +242,7 @@ def install_kubernetes(
     master_private_ip: str,
     worker_private_ips: list[str],
     password: str,
+    ssh_key: paramiko.RSAKey = None,
 ) -> str:
     """
     Bootstrap a K8s cluster. Workers are reached via the master as a jump host
@@ -240,7 +254,7 @@ def install_kubernetes(
 
     # ── 2. Connect to master ──────────────────────────────────────────────────
     print(f"📦 Connecting to master {master_public_ip}...")
-    master_conn = _ssh_connect(master_public_ip, password)
+    master_conn = _ssh_connect(master_public_ip, pkey=ssh_key)
 
     # ── 3. Install K8s prerequisites on master ────────────────────────────────
     print("  Installing K8s prerequisites on master...")
@@ -250,7 +264,7 @@ def install_kubernetes(
     worker_conns: list[paramiko.SSHClient] = []
     for priv_ip in worker_private_ips:
         print(f"  Connecting to worker {priv_ip} via jump...")
-        conn = _ssh_connect_via_jump(master_conn, priv_ip, password)
+        conn = _ssh_connect_via_jump(master_conn, priv_ip, pkey=ssh_key)
         worker_conns.append(conn)
         print(f"  Installing K8s prerequisites on worker {priv_ip}...")
         _run_ssh(conn, _K8S_PREREQ, timeout=600)
