@@ -54,6 +54,14 @@ resource "hcs_ecs_compute_instance" "master" {
   }
 
   admin_pass = var.administrator_password
+
+  user_data = base64encode(<<-EOT
+    #!/bin/bash
+    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    systemctl restart sshd
+  EOT
+  )
 }
 
 resource "hcs_vpc_eip" "master_eip" {
@@ -92,6 +100,14 @@ resource "hcs_ecs_compute_instance" "workers" {
   }
 
   admin_pass = var.administrator_password
+
+  user_data = base64encode(<<-EOT
+    #!/bin/bash
+    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    systemctl restart sshd
+  EOT
+  )
 }
 
 # ─── Outputs ─────────────────────────────────────────────────────────────────
