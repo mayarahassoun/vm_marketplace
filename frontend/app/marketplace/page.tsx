@@ -1,27 +1,8 @@
 "use client"
 
-import { Search, Filter, SlidersHorizontal, ChevronDown, ArrowLeft } from "lucide-react"
+import { Search, Filter, SlidersHorizontal, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import AppLogo from "@/components/AppLogo"
-
-function Header() {
-  return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
-        <AppLogo />
-        <div className="hidden items-center gap-10 text-sm font-medium text-slate-700 md:flex">
-          <Link href="/marketplace" className="text-slate-900 underline underline-offset-4 decoration-2">Marketplace</Link>
-          <Link href="/build-vm/instance" className="hover:text-slate-900">Build VM</Link>
-          <Link href="/build-cluster" className="hover:text-slate-900">Clusters</Link>
-          <Link href="/ai-recommendation" className="hover:text-slate-900">AI Recommendation</Link>
-          <Link href="/dashboard" className="hover:text-slate-900">Dashboard</Link>
-        </div>
-        <div className="h-8 w-8 rounded-full bg-slate-200" />
-      </div>
-    </header>
-  )
-}
+import Navbar from "@/components/Navbar"
 
 const vmTemplates = [
   {
@@ -75,22 +56,9 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <Header />
+      <Navbar active="Marketplace" backLabel="Dashboard" backHref="/dashboard" />
 
       <div className="mx-auto max-w-[1400px] px-8 py-8">
-
-      {/* Breadcrumb */}
-      <div className="mb-6 flex items-center gap-2 text-sm text-slate-500">
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 hover:bg-slate-100 hover:text-slate-900 transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Dashboard
-        </button>
-        <span>/</span>
-        <span className="font-medium text-slate-900">Marketplace</span>
-      </div>
 
       {/* Topbar */}
       <div className="mb-8 flex items-center justify-between">

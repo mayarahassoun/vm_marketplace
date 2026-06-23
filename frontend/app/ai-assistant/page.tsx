@@ -3,9 +3,11 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useBuildVM } from "../build-vm/BuildVMContext"
-import { Sparkles, ArrowRight, Loader2, ArrowLeft } from "lucide-react"
+import { Sparkles, ArrowRight, Loader2 } from "lucide-react"
 import AuthGuard from "@/components/AuthGuard"
+import Navbar from "@/components/Navbar"
 import { API_URL } from "@/lib/api"
+
 
 type AIAssistantResult = {
   ready_to_deploy: {
@@ -110,29 +112,21 @@ export default function AIAssistantPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-[#fafafa] px-8 py-8">
-        <div className="mx-auto max-w-3xl">
+      <div className="min-h-screen bg-[#fafafa]">
+        <Navbar active="AI Recommendation" backLabel="Dashboard" backHref="/dashboard" />
+        <div className="mx-auto max-w-3xl px-8 py-8">
 
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-violet-100 p-3">
-                <Sparkles className="h-6 w-6 text-violet-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold text-slate-900">AI VM Assistant</h1>
-                <p className="text-sm text-slate-500">
-                  Describe your project and get an instant VM recommendation
-                </p>
-              </div>
+          <div className="mb-8 flex items-center gap-3">
+            <div className="rounded-xl bg-violet-100 p-3">
+              <Sparkles className="h-6 w-6 text-violet-600" />
             </div>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Dashboard
-            </button>
+            <div>
+              <h1 className="text-3xl font-semibold text-slate-900">AI VM Assistant</h1>
+              <p className="text-sm text-slate-500">
+                Describe your project and get an instant VM recommendation
+              </p>
+            </div>
           </div>
 
           {/* Input */}

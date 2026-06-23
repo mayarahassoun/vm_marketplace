@@ -2,7 +2,8 @@
 
 import { useSearchParams, useRouter } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
-import { ArrowLeft, Activity, Cpu, MemoryStick, Network } from "lucide-react"
+import { Activity, Cpu, MemoryStick, Network } from "lucide-react"
+import Navbar from "@/components/Navbar"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, AreaChart, Area
@@ -67,24 +68,16 @@ function MonitoringPageContent() {
   }, [router, vmId])
 
   return (
-    <div className="min-h-screen bg-[#fafafa] px-8 py-8">
+    <div className="min-h-screen bg-[#fafafa]">
+      <Navbar active="Dashboard" backLabel="Dashboard" backHref="/dashboard" />
+      <div className="px-8 py-8">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </button>
-          <div className="h-4 w-px bg-slate-200" />
-          <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-blue-500" />
-            <h1 className="text-2xl font-semibold text-slate-900">
-              Monitoring — {vmName}
-            </h1>
-          </div>
+        <div className="flex items-center gap-3">
+          <Activity className="h-5 w-5 text-blue-500" />
+          <h1 className="text-2xl font-semibold text-slate-900">
+            Monitoring — {vmName}
+          </h1>
         </div>
         <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
           Live — updates every 10s
@@ -218,6 +211,7 @@ function MonitoringPageContent() {
 
         </div>
       )}
+      </div>
     </div>
   )
 }

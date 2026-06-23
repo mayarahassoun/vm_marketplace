@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowRight,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react"
 import { API_URL } from "@/lib/api"
 import { useBuildVM } from "../build-vm/BuildVMContext"
+import Navbar from "@/components/Navbar"
 
 type RecommendationResult = {
   llm_used: boolean
@@ -142,26 +142,21 @@ export default function AiRecommendationPage() {
   const scores = result?.recommendation.ai_scores
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
-              <Sparkles className="h-4 w-4" />
-              Recommandation IA VM
-            </div>
-            <h1 className="text-4xl font-bold text-slate-900">
-              Assistant intelligent de recommandation VM
-            </h1>
-            <p className="mt-3 max-w-2xl text-slate-600">
-              Decrivez le besoin de votre application et obtenez une VM adaptee,
-              avec les besoins extraits, les scores de raisonnement et une justification.
-            </p>
+    <div className="min-h-screen bg-slate-50">
+      <Navbar active="AI Recommendation" backLabel="Dashboard" backHref="/dashboard" />
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mb-8">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
+            <Sparkles className="h-4 w-4" />
+            Recommandation IA VM
           </div>
-
-          <Link href="/dashboard" className="rounded-xl border px-4 py-2 text-sm">
-            Dashboard
-          </Link>
+          <h1 className="text-4xl font-bold text-slate-900">
+            Assistant intelligent de recommandation VM
+          </h1>
+          <p className="mt-3 max-w-2xl text-slate-600">
+            Decrivez le besoin de votre application et obtenez une VM adaptee,
+            avec les besoins extraits, les scores de raisonnement et une justification.
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -263,8 +258,8 @@ export default function AiRecommendationPage() {
             )}
           </section>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }
 

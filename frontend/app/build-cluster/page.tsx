@@ -7,13 +7,12 @@ import {
   Download, Globe, HardDrive, Loader2, Network,
   Server, ShieldCheck, Terminal,
 } from "lucide-react"
-import Link from "next/link"
 import { loadStripe } from "@stripe/stripe-js"
 import {
   CardCvcElement, CardExpiryElement, CardNumberElement,
   Elements, useElements, useStripe,
 } from "@stripe/react-stripe-js"
-import AppLogo from "@/components/AppLogo"
+import Navbar from "@/components/Navbar"
 import { API_URL, VM_IMAGES, clearAuthToken, getAuthToken } from "@/lib/api"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -367,25 +366,6 @@ function ReviewItem({
   )
 }
 
-// ─── Page header ─────────────────────────────────────────────────────────────
-
-function Header() {
-  return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <AppLogo />
-        <div className="hidden items-center gap-10 text-sm font-medium text-slate-700 md:flex">
-          <Link href="/marketplace" className="hover:text-slate-900">Marketplace</Link>
-          <Link href="/build-vm/instance" className="hover:text-slate-900">Build VM</Link>
-          <Link href="/build-cluster" className="text-slate-900 underline underline-offset-4 decoration-2">Clusters</Link>
-          <Link href="/ai-recommendation" className="hover:text-slate-900">AI Recommendation</Link>
-          <Link href="/dashboard" className="hover:text-slate-900">Dashboard</Link>
-        </div>
-        <div className="h-8 w-8 rounded-full bg-slate-200" />
-      </div>
-    </header>
-  )
-}
 
 // ─── Main wizard ──────────────────────────────────────────────────────────────
 
@@ -446,7 +426,7 @@ export default function BuildClusterPage() {
   if (sessionId) {
     return (
       <div className="min-h-screen bg-[#fafafa]">
-        <Header />
+        <Navbar active="Clusters" backLabel="Dashboard" backHref="/dashboard" />
         <div className="mx-auto max-w-7xl px-6 py-10">
           <ProgressView sessionId={sessionId} />
         </div>
@@ -456,7 +436,7 @@ export default function BuildClusterPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <Header />
+      <Navbar active="Clusters" backLabel="Dashboard" backHref="/dashboard" />
 
       <div className="mx-auto max-w-4xl px-6 py-10">
 
