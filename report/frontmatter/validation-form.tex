@@ -1,0 +1,19 @@
+% ─── Formulaire de validation ESPRIT (page 1 du PDF officiel) ────────────────
+\thispagestyle{empty}
+\newgeometry{margin=0pt}
+\includepdf[pages={1}, noautoscale=false, fitpaper=true,
+            pagecommand={
+% Nom de l'étudiante
+\begin{textblock}{100}(55, 52)
+  {\normalsize Hassoun Mayara}
+\end{textblock}
+% Nom encadrant entreprise
+\begin{textblock}{100}(55, 100)
+  {\normalsize Rached Abdeljaoued}
+\end{textblock}
+% Nom encadrante académique
+\begin{textblock}{100}(55, 192)
+  {\normalsize Mme Khadija Bessadak}
+\end{textblock}
+}]{assets/cover/esprit-template.pdf}
+\restoregeometry

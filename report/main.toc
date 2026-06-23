@@ -1,0 +1,108 @@
+\babel@toc {french}{}\relax 
+\contentsline {chapter}{Remerciements}{ii}{chapter*.1}%
+\contentsline {chapter}{Résumé}{iii}{chapter*.2}%
+\contentsline {chapter}{Abstract}{iv}{chapter*.3}%
+\contentsline {chapter}{Liste des abréviations}{x}{chapter*.7}%
+\contentsline {chapter}{Introduction Générale}{1}{chapter*.8}%
+\contentsline {chapter}{\numberline {1}Contexte Général}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Introduction}{3}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Présentation de l'Organisme d'Accueil}{3}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Informations Générales}{3}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Huawei Cloud Stack (HCS)}{3}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Contexte du Stage}{3}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Contexte du Projet et Problématique}{4}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Contexte du Projet}{4}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Problématique}{4}{subsection.1.3.2}%
+\contentsline {section}{\numberline {1.4}Étude de l'Existant}{4}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Présentation des Solutions Candidates}{4}{subsection.1.4.1}%
+\contentsline {paragraph}{OpenStack Horizon.}{4}{paragraph*.9}%
+\contentsline {paragraph}{Proxmox VE.}{5}{paragraph*.10}%
+\contentsline {paragraph}{VMware Cloud Director.}{5}{paragraph*.11}%
+\contentsline {paragraph}{AWS Management Console.}{5}{paragraph*.12}%
+\contentsline {subsection}{\numberline {1.4.2}Analyse Comparative}{5}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Critique de l'Existant}{5}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Solution Proposée}{6}{section.1.6}%
+\contentsline {subsection}{\numberline {1.6.1}Vue d'Ensemble}{6}{subsection.1.6.1}%
+\contentsline {subsection}{\numberline {1.6.2}Architecture Générale}{7}{subsection.1.6.2}%
+\contentsline {section}{\numberline {1.7}Méthodologie}{7}{section.1.7}%
+\contentsline {subsection}{\numberline {1.7.1}Comparaison des Méthodologies de Développement}{7}{subsection.1.7.1}%
+\contentsline {subsection}{\numberline {1.7.2}Méthodologie Retenue : Agile Itératif}{7}{subsection.1.7.2}%
+\contentsline {subsection}{\numberline {1.7.3}Planification du Projet}{8}{subsection.1.7.3}%
+\contentsline {section}{\numberline {1.8}Conclusion}{8}{section.1.8}%
+\contentsline {chapter}{\numberline {2}Analyse et Architecture}{9}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{9}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Identification des Acteurs}{9}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Besoins Fonctionnels}{9}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Module Authentification}{9}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Module Provisionnement de VM}{9}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Module Gestion des VM}{10}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Module Recommandation IA}{10}{subsection.2.3.4}%
+\contentsline {subsection}{\numberline {2.3.5}Module Cluster Kubernetes}{10}{subsection.2.3.5}%
+\contentsline {section}{\numberline {2.4}Besoins Non Fonctionnels}{11}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Diagramme de Cas d'Utilisation Global}{11}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Diagramme de Classes}{12}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Backlog Produit}{13}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Architecture du Système}{14}{section.2.8}%
+\contentsline {subsection}{\numberline {2.8.1}Architecture Logique}{14}{subsection.2.8.1}%
+\contentsline {subsection}{\numberline {2.8.2}Architecture de Déploiement}{14}{subsection.2.8.2}%
+\contentsline {section}{\numberline {2.9}Environnement de Travail}{15}{section.2.9}%
+\contentsline {section}{\numberline {2.10}Choix Technologiques}{16}{section.2.10}%
+\contentsline {subsection}{\numberline {2.10.1}Frontend : Next.js 14}{16}{subsection.2.10.1}%
+\contentsline {subsection}{\numberline {2.10.2}Backend : FastAPI}{16}{subsection.2.10.2}%
+\contentsline {subsection}{\numberline {2.10.3}Infrastructure as Code : Terraform}{16}{subsection.2.10.3}%
+\contentsline {subsection}{\numberline {2.10.4}Moteur IA : Ollama + Llama 3.1}{16}{subsection.2.10.4}%
+\contentsline {subsection}{\numberline {2.10.5}Connectivité SSH : Paramiko}{16}{subsection.2.10.5}%
+\contentsline {subsection}{\numberline {2.10.6}Supervision : Netdata}{16}{subsection.2.10.6}%
+\contentsline {section}{\numberline {2.11}Conclusion}{17}{section.2.11}%
+\contentsline {chapter}{\numberline {3}Conception et Réalisation}{18}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Introduction}{18}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Sprint 1 --- Authentification et Provisionnement de VM}{18}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Objectif du Sprint}{18}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Backlog du Sprint}{18}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Conception de l'Authentification}{18}{subsection.3.2.3}%
+\contentsline {paragraph}{Hachage du mot de passe.}{18}{paragraph*.24}%
+\contentsline {paragraph}{Jetons JWT.}{18}{paragraph*.25}%
+\contentsline {subsection}{\numberline {3.2.4}Assistant de Configuration de VM}{19}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}Pipeline de Provisionnement de VM}{19}{subsection.3.2.5}%
+\contentsline {paragraph}{Modèle Terraform.}{20}{paragraph*.28}%
+\contentsline {paragraph}{Authentification SSH root via cloud-init.}{20}{paragraph*.29}%
+\contentsline {paragraph}{Suivi de progression.}{20}{paragraph*.30}%
+\contentsline {subsection}{\numberline {3.2.6}Tableau de Bord}{21}{subsection.3.2.6}%
+\contentsline {subsection}{\numberline {3.2.7}Difficultés Rencontrées dans le Sprint 1}{21}{subsection.3.2.7}%
+\contentsline {section}{\numberline {3.3}Sprint 2 --- Recommandation IA, Terminal SSH et Supervision}{21}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Objectif du Sprint}{21}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Backlog du Sprint}{22}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Moteur de Recommandation IA}{22}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Terminal SSH dans le Navigateur}{23}{subsection.3.3.4}%
+\contentsline {subsection}{\numberline {3.3.5}Supervision Netdata}{23}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {3.3.6}Marketplace de VM}{24}{subsection.3.3.6}%
+\contentsline {section}{\numberline {3.4}Sprint 3 --- Provisionnement de Clusters Kubernetes}{24}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Objectif du Sprint}{24}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Backlog du Sprint}{24}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}Architecture du Cluster}{24}{subsection.3.4.3}%
+\contentsline {subsection}{\numberline {3.4.4}Modèle Terraform du Cluster}{25}{subsection.3.4.4}%
+\contentsline {paragraph}{Génération dynamique de paire de clés SSH.}{25}{paragraph*.35}%
+\contentsline {subsection}{\numberline {3.4.5}Séquence d'Initialisation Kubernetes}{26}{subsection.3.4.5}%
+\contentsline {subsection}{\numberline {3.4.6}Solution Réseau : Maître comme Passerelle NAT}{27}{subsection.3.4.6}%
+\contentsline {paragraph}{Problème.}{27}{paragraph*.36}%
+\contentsline {paragraph}{Investigation.}{27}{paragraph*.37}%
+\contentsline {paragraph}{Cause racine.}{27}{paragraph*.38}%
+\contentsline {paragraph}{Solution.}{27}{paragraph*.39}%
+\contentsline {subsection}{\numberline {3.4.7}Assistant et Tableau de Bord du Cluster}{27}{subsection.3.4.7}%
+\contentsline {section}{\numberline {3.5}Conclusion}{28}{section.3.5}%
+\contentsline {chapter}{\numberline {4}Tests et Validation}{29}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Introduction}{29}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Environnement de Test}{29}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Tests d'Authentification}{30}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Tests de Provisionnement de VM}{32}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Tests de Recommandation IA}{33}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Tests du Terminal SSH}{34}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Tests du Cluster Kubernetes}{35}{section.4.7}%
+\contentsline {paragraph}{Sortie de validation kubectl.}{35}{paragraph*.46}%
+\contentsline {section}{\numberline {4.8}Évaluation des Objectifs}{36}{section.4.8}%
+\contentsline {section}{\numberline {4.9}Limites Identifiées}{38}{section.4.9}%
+\contentsline {section}{\numberline {4.10}Conclusion}{38}{section.4.10}%
+\contentsline {chapter}{Conclusion Générale}{39}{chapter*.48}%
+\contentsline {chapter}{Bibliography / Netography}{42}{chapter*.49}%
+\contentsline {chapter}{\numberline {A}Référence des Endpoints REST}{43}{appendix.A}%
+\contentsline {chapter}{\numberline {B}Modèle Terraform du Cluster}{45}{appendix.B}%

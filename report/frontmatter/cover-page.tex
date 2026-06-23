@@ -1,0 +1,53 @@
+% ─── Page de garde : fond ESPRIT officiel + surimpression TikZ ──────────────
+\thispagestyle{empty}
+\newgeometry{top=0pt, bottom=0pt, left=0pt, right=0pt}
+
+\begin{tikzpicture}[remember picture, overlay]
+
+  %% ── Fond : page 3 du PDF ESPRIT (le vrai template avec triangles) ──────────
+  \node[anchor=north west, inner sep=0pt] at (current page.north west) {%
+    \includegraphics[page=3, width=\paperwidth, height=\paperheight]%
+      {assets/cover/esprit-template.pdf}%
+  };
+
+  %% ── Année (recouvre "2022 - 2023") ─────────────────────────────────────────
+  \node[anchor=west,
+        font=\fontsize{22}{26}\selectfont\bfseries,
+        text=red!90!black]
+    at ([xshift=38mm, yshift=-73mm] current page.north west)
+    {2025 -- 2026};
+
+  %% ── Titre du rapport (recouvre "SUJET DU RAPPORT DE STAGE") ────────────────
+  \node[anchor=north west,
+        font=\fontsize{11}{15}\selectfont\bfseries,
+        text width=13cm]
+    at ([xshift=38mm, yshift=-130mm] current page.north west)
+    {VM Marketplace : Conception et Développement\\[3pt]
+     d'une Plateforme Cloud en Libre-Service\\[3pt]
+     pour le Déploiement de Machines Virtuelles\\[3pt]
+     et de Clusters Kubernetes sur Huawei Cloud Stack};
+
+  %% ── Réalisé par : Mayara Hassoun ────────────────────────────────────────────
+  \node[anchor=west, font=\normalsize\bfseries]
+    at ([xshift=63mm, yshift=-165mm] current page.north west)
+    {Mayara Hassoun};
+
+  %% ── Encadrante ESPRIT ───────────────────────────────────────────────────────
+  \node[anchor=west, font=\normalsize\bfseries]
+    at ([xshift=63mm, yshift=-184mm] current page.north west)
+    {Mme Khadija Bessadak};
+
+  %% ── Encadrant Entreprise ────────────────────────────────────────────────────
+  \node[anchor=west, font=\normalsize\bfseries]
+    at ([xshift=63mm, yshift=-200mm] current page.north west)
+    {Rached Abdeljaoued};
+
+  %% ── Logo Huawei (remplace la case LOGO ENTREPRISE) ─────────────────────────
+  \node[anchor=center]
+    at ([xshift=155mm, yshift=-193mm] current page.north west)
+    {\HuaweiLogo};
+
+\end{tikzpicture}
+
+\clearpage
+\restoregeometry

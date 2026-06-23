@@ -1,0 +1,551 @@
+\chapter{Conception et Réalisation}
+
+\section{Introduction}
+
+Ce chapitre documente les trois sprints de développement à travers lesquels
+VM Marketplace a été construite. Chaque section de sprint s'ouvre sur son objectif et
+son backlog, détaille les décisions de conception et les artefacts d'implémentation
+clés, et se clôt par les difficultés rencontrées et la façon dont elles ont été
+résolues.
+
+% =============================================================================
+\section{Sprint 1 --- Authentification et Provisionnement de VM}
+% =============================================================================
+
+\subsection{Objectif du Sprint}
+
+Livrer un flux complet de bout en bout, de l'inscription de l'utilisateur à une VM
+provisionnée et opérationnelle sur HCS, incluant le paiement Stripe et la diffusion
+SSE de progression en temps réel.
+
+\subsection{Backlog du Sprint}
+
+\begin{table}[H]
+\centering
+\caption{Backlog Sprint 1}
+\label{tab:sprint1_backlog}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{ID} & \textbf{Statut} & \textbf{Description} \\
+\midrule
+US-01 & Terminé & S'inscrire et se connecter avec e-mail / mot de passe \\
+US-02 & Terminé & Configurer une VM via l'assistant multi-étapes \\
+US-03 & Terminé & Payer via le formulaire Stripe \\
+US-04 & Terminé & Provisionner la VM sur HCS via Terraform \\
+US-05 & Terminé & Diffuser la progression du provisionnement via SSE \\
+US-06 & Terminé & Envoyer un e-mail de confirmation après provisionnement \\
+US-07 & Terminé & Consulter et supprimer ses VM dans le tableau de bord \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Conception de l'Authentification}
+
+\paragraph{Hachage du mot de passe.} Les mots de passe des utilisateurs sont hachés
+avec bcrypt (10 rounds) via la bibliothèque \texttt{passlib}. Le hash est stocké dans
+la table \texttt{utilisateurs} ; le mot de passe en clair n'est jamais persisté.
+
+\paragraph{Jetons JWT.} À la connexion réussie, le backend génère un JWT signé
+contenant l'identifiant (\texttt{sub}) et la date d'expiration (\texttt{exp} = heure
+actuelle + 30 minutes), en utilisant l'algorithme HS256. Le frontend stocke le jeton
+dans le \texttt{localStorage} et l'attache en tant qu'en-tête \texttt{Bearer} à toutes
+les requêtes API ultérieures.
+
+La figure~\ref{fig:auth_seq} présente le diagramme de séquence d'authentification.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, minimum width=2.8cm, minimum height=0.7cm,
+              align=center, font=\small},
+  arr/.style={-{Stealth}, thick},
+]
+  \node[box] (browser) at (0,0)    {Navigateur};
+  \node[box] (api)     at (6,0)    {FastAPI};
+  \node[box] (db)      at (11,0)   {SQLite};
+
+  % Lignes de vie
+  \draw[dashed] (browser.south) -- (0,-7);
+  \draw[dashed] (api.south)     -- (6,-7);
+  \draw[dashed] (db.south)      -- (11,-7);
+
+  % Inscription
+  \draw[arr] (0,-1) -- node[above,font=\scriptsize]{POST /api/register \{email, mdp\}} (6,-1);
+  \draw[arr] (6,-1.6) -- node[above,font=\scriptsize]{INSERT utilisateur (hash bcrypt)} (11,-1.6);
+  \draw[arr] (11,-2.2) -- node[above,font=\scriptsize]{200 OK} (6,-2.2);
+  \draw[arr] (6,-2.8) -- node[above,font=\scriptsize]{201 \{message: "inscrit"\}} (0,-2.8);
+
+  % Connexion
+  \draw[arr] (0,-3.8) -- node[above,font=\scriptsize]{POST /api/login \{email, mdp\}} (6,-3.8);
+  \draw[arr] (6,-4.4) -- node[above,font=\scriptsize]{SELECT utilisateur WHERE email=...} (11,-4.4);
+  \draw[arr] (11,-5.0) -- node[above,font=\scriptsize]{Enregistrement utilisateur} (6,-5.0);
+  \draw[arr] (6,-5.6) -- node[above,font=\scriptsize]{bcrypt.verify + signature JWT} (6,-5.6);
+  \draw[arr] (6,-6.2) -- node[above,font=\scriptsize]{200 \{access\_token, token\_type\}} (0,-6.2);
+
+  \node[font=\tiny, anchor=east] at (0,-1)    {1};
+  \node[font=\tiny, anchor=east] at (0,-3.8)  {2};
+\end{tikzpicture}
+\caption{Diagramme de séquence --- Authentification}
+\label{fig:auth_seq}
+\end{figure}
+
+\subsection{Assistant de Configuration de VM}
+
+L'assistant est implémenté comme un formulaire React multi-étapes en sept étapes :
+sélection du type d'instance, sélection du système d'exploitation, configuration du
+stockage, configuration réseau, sélection de la région, révision et paiement. L'état
+est géré globalement dans un contexte React \texttt{BuildVMContext}
+(\texttt{frontend/BuildVMContext.tsx}), garantissant qu'aucune donnée n'est perdue
+lors de la navigation entre les étapes.
+
+\screenshotplaceholder{Assistant de configuration de VM en plusieurs étapes --- Étape 1 : Sélection du type d'instance}
+
+Les images de VM sont répertoriées avec leurs UUID HCS directement dans le frontend.
+Le catalogue distingue les images disponibles de celles marquées \texttt{needs\_id}
+(UUID non encore attribué dans l'environnement HCS de production).
+
+\subsection{Pipeline de Provisionnement de VM}
+
+La figure~\ref{fig:vm_prov_seq} illustre la séquence de provisionnement de VM,
+du paiement confirmé à la VM en cours d'exécution.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, minimum width=2cm, minimum height=0.7cm,
+              align=center, font=\scriptsize},
+  arr/.style={-{Stealth}, thick},
+]
+  \node[box] (fe)  at (0,  0) {Frontend};
+  \node[box] (be)  at (4,  0) {FastAPI};
+  \node[box] (str) at (7.5,0) {Stripe};
+  \node[box] (tf)  at (11, 0) {Terraform};
+  \node[box] (hcs) at (14, 0) {HCS};
+
+  \draw[dashed] (0,0) -- (0,-12);
+  \draw[dashed] (4,0) -- (4,-12);
+  \draw[dashed] (7.5,0) -- (7.5,-12);
+  \draw[dashed] (11,0) -- (11,-12);
+  \draw[dashed] (14,0) -- (14,-12);
+
+  \draw[arr] (0,-1)   -- node[above,font=\tiny]{POST /api/payment/create-payment-intent} (4,-1);
+  \draw[arr] (4,-1.8) -- node[above,font=\tiny]{confirm PaymentIntent} (7.5,-1.8);
+  \draw[arr] (7.5,-2.6)-- node[above,font=\tiny]{succeeded} (4,-2.6);
+  \draw[arr] (4,-3.4) -- node[above,font=\tiny]{\{session\_id\}} (0,-3.4);
+  \node[font=\tiny, align=left, anchor=west] at (4.1,-4.0) {thread d'arrière-plan};
+  \draw[arr] (4,-4.6) -- node[above,font=\tiny]{terraform init + apply} (11,-4.6);
+  \draw[arr] (11,-5.4)-- node[above,font=\tiny]{HCS ECS créer + EIP} (14,-5.4);
+  \draw[arr] (14,-6.2)-- node[above,font=\tiny]{VM en cours d'exécution} (11,-6.2);
+  \draw[arr] (11,-7.0)-- node[above,font=\tiny]{ip\_publique, id\_vm} (4,-7.0);
+  \draw[arr] (0,-7.8) -- node[above,font=\tiny]{GET /api/payment/progress/:session} (4,-7.8);
+  \draw[arr] (4,-8.6) -- node[above,font=\tiny]{flux SSE (étapes)} (0,-8.6);
+  \node[font=\tiny, align=left, anchor=west] at (4.1,-9.2) {arrière-plan : SSH + Netdata};
+  \draw[arr] (4,-9.8) -- node[above,font=\tiny]{installer Netdata via SSH} (11,-9.8);
+  \draw[arr] (4,-10.6)-- node[above,font=\tiny]{stocker VM + envoyer e-mail} (0,-10.6);
+  \draw[arr] (4,-11.4)-- node[above,font=\tiny]{SSE : done=true} (0,-11.4);
+\end{tikzpicture}
+\caption{Diagramme de séquence --- Provisionnement de VM}
+\label{fig:vm_prov_seq}
+\end{figure}
+
+\paragraph{Modèle Terraform.}
+Chaque VM possède son propre répertoire d'état Terraform à
+\texttt{terraform\_states/<id\_vm\_cloud>/}. Le modèle (\texttt{terraform\_test/main.tf})
+déclare une \texttt{hcs\_ecs\_compute\_instance} avec un disque système, un EIP
+(\texttt{hcs\_vpc\_eip}) et une association EIP. Le flavor est résolu par nom ou par
+ID via une requête de source de données sur tous les flavors HCS disponibles.
+
+\paragraph{Authentification SSH root via cloud-init.}
+Les images Ubuntu 22.04 sur HCS imposent \texttt{PasswordAuthentication no} par
+défaut. Le champ \texttt{user\_data} passe un script bash à \texttt{cloud-init} au
+premier démarrage pour réactiver le SSH root par mot de passe, permettant au backend
+de se connecter pour l'installation de Netdata.
+
+\paragraph{Suivi de progression.}
+La progression du provisionnement est suivie dans un dictionnaire Python en mémoire
+\texttt{progress\_store} dans \texttt{backend/app/api/payment.py}. Chaque étape
+(paiement confirmé, infrastructure provisionnée, supervision installée) est mise à
+jour par le thread d'arrière-plan. Le frontend suit le flux SSE
+\texttt{GET /api/payment/progress/:session\_id} et affiche un indicateur d'étapes.
+
+\screenshotplaceholder{Indicateur de progression SSE en temps réel lors du provisionnement de VM}
+
+\subsection{Tableau de Bord}
+
+Le tableau de bord (\texttt{frontend/app/dashboard/}) liste toutes les VM appartenant
+à l'utilisateur authentifié. Chaque carte VM affiche le statut, l'IP publique, le
+flavor, la date de création et des boutons d'action pour le SSH, la supervision et
+la suppression.
+
+\screenshotplaceholder{Tableau de bord utilisateur --- liste des VM avec boutons d'action}
+
+\subsection{Difficultés Rencontrées dans le Sprint 1}
+
+\begin{itemize}
+  \item \textbf{Nom vs.\ ID de flavor :} L'API HCS exige des ID de flavor (UUID), mais
+        les utilisateurs et les modèles de l'assistant utilisent des noms de flavor
+        (ex. : \texttt{c7.large.4}). Résolu en interrogeant
+        \texttt{data.hcs\_ecs\_compute\_flavors.all} et en faisant correspondre par
+        nom ou ID au moment du plan Terraform.
+  \item \textbf{Type d'EIP incorrect :} Le type d'IP publique \texttt{5\_bgp} utilisé
+        dans certains exemples Terraform n'est pas valide sur le déploiement HCS MESRS ;
+        le type correct est \texttt{External-01}. Résolu en lisant les valeurs de
+        l'interface portail HCS.
+\end{itemize}
+
+% =============================================================================
+\section{Sprint 2 --- Recommandation IA, Terminal SSH et Supervision}
+% =============================================================================
+
+\subsection{Objectif du Sprint}
+
+Ajouter le moteur de recommandation IA, un terminal SSH dans le navigateur, la
+supervision automatisée Netdata et une marketplace de modèles de VM préconfigurés.
+
+\subsection{Backlog du Sprint}
+
+\begin{table}[H]
+\centering
+\caption{Backlog Sprint 2}
+\label{tab:sprint2_backlog}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{ID} & \textbf{Statut} & \textbf{Description} \\
+\midrule
+US-08 & Terminé & Décrire sa charge de travail, recevoir une recommandation IA de VM \\
+US-09 & Terminé & Parcourir les modèles de VM préconfigurés \\
+US-10 & Terminé & Terminal SSH dans le navigateur \\
+US-11 & Terminé & Tableau de bord de supervision Netdata par VM \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Moteur de Recommandation IA}
+
+Le moteur IA s'exécute en tant que processus FastAPI distinct sur le port 8001 afin
+d'isoler la latence d'inférence LLM de l'API principale. Il est composé de trois
+modules :
+
+\begin{enumerate}
+  \item \textbf{\texttt{ollama\_client.py}} --- envoie la description textuelle de la
+        charge de travail de l'utilisateur à l'API HTTP Ollama locale
+        (\texttt{http://localhost:11434}) avec un prompt structuré demandant à
+        Llama~3.1 de retourner un objet JSON.
+  \item \textbf{\texttt{parser.py}} --- extrait et valide les champs JSON de la
+        réponse du LLM : \texttt{workload} (intensité CPU/mémoire/GPU),
+        \texttt{users} (nombre d'utilisateurs concurrents), \texttt{app\_type},
+        \texttt{budget} et \texttt{confidence} (flottant entre 0 et 1).
+  \item \textbf{\texttt{mapper.py}} --- mappe les champs analysés vers un flavor HCS
+        et une spécification de configuration. L'intensité de la charge de travail
+        (\texttt{low}/\texttt{medium}/\texttt{high}) sélectionne un niveau de flavor
+        (ex. : \texttt{c7.large.4} pour les charges de calcul moyennes).
+\end{enumerate}
+
+La figure~\ref{fig:ai_flow} présente le flux de données de la recommandation IA.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, rounded corners=3pt, minimum width=3cm,
+              minimum height=0.9cm, align=center, font=\small},
+  arr/.style={-{Stealth}, thick},
+]
+  \node[box, fill=green!10]  (user) at (0,0)  {Utilisateur\\(langage naturel)};
+  \node[box, fill=orange!10] (be)   at (4,0)  {Backend\\FastAPI};
+  \node[box, fill=purple!10] (ai)   at (8,0)  {Moteur IA};
+  \node[box, fill=gray!10]   (oll)  at (8,-2) {Ollama\\llama3.1};
+  \node[box, fill=blue!10]   (map)  at (12,0) {mapper.py\\flavor + specs};
+
+  \draw[arr] (user) -- node[above,font=\scriptsize]{POST /api/ai/recommend} (be);
+  \draw[arr] (be)   -- node[above,font=\scriptsize]{proxy} (ai);
+  \draw[arr] (ai)   -- node[right,font=\scriptsize]{prompt} (oll);
+  \draw[arr] (oll)  -- node[right,font=\scriptsize]{JSON} (ai);
+  \draw[arr] (ai)   -- node[above,font=\scriptsize]{parse} (map);
+  \draw[arr] (map)  to[bend right=30] node[below,font=\scriptsize]{recommandation} (be);
+  \draw[arr] (be)   to[bend right=30] node[below,font=\scriptsize]{résultat} (user);
+\end{tikzpicture}
+\caption{Flux de données de la recommandation IA}
+\label{fig:ai_flow}
+\end{figure}
+
+\screenshotplaceholder{Page de recommandation IA --- l'utilisateur saisit sa description de charge de travail, le système retourne la spécification de VM recommandée avec le score de confiance}
+
+\subsection{Terminal SSH dans le Navigateur}
+
+La fonctionnalité de terminal SSH offre un accès shell root à toute VM provisionnée
+directement dans le navigateur, sans nécessiter l'installation d'un client SSH ni
+la gestion de clés privées.
+
+L'implémentation repose sur deux composants :
+
+\begin{itemize}
+  \item \textbf{Frontend :} La bibliothèque \texttt{xterm.js} rend un émulateur de
+        terminal dans le navigateur et se connecte au backend via une connexion
+        WebSocket.
+  \item \textbf{Backend (\texttt{api/ssh.py}) :} Un endpoint WebSocket accepte la
+        connexion, ouvre une session SSH Paramiko vers la VM cible (en utilisant l'IP
+        publique de la VM et les identifiants root stockés), démarre un canal shell
+        interactif et transfère les octets de manière bidirectionnelle entre le
+        WebSocket et le canal SSH.
+\end{itemize}
+
+\screenshotplaceholder{Terminal SSH dans le navigateur affichant un shell root sur une VM HCS provisionnée}
+
+\subsection{Supervision Netdata}
+
+Après le provisionnement de la VM, un second thread d'arrière-plan se connecte à la
+VM via SSH et installe l'agent Netdata :
+
+\begin{lstlisting}[language=bash, caption={Commande d'installation de Netdata (exécutée via SSH)},
+                   label={lst:netdata_install}]
+bash <(curl -Ss https://my-netdata.io/kickstart.sh) --non-interactive
+\end{lstlisting}
+
+Le tableau de bord Netdata (port 19999) est ensuite accessible à
+\texttt{http://<ip\_publique>:19999}. L'URL est stockée dans la colonne
+\texttt{netdata\_url} de la table \texttt{virtual\_machines} et affichée sous forme
+d'iframe sandboxé dans la page de supervision de la plateforme.
+
+\screenshotplaceholder{Tableau de bord de supervision Netdata intégré dans la plateforme pour une VM en cours d'exécution}
+
+\subsection{Marketplace de VM}
+
+La page marketplace (\texttt{frontend/app/marketplace/}) affiche un catalogue de
+modèles de VM préconfigurés (ex. : « Station Data Science », « Serveur Web »,
+« Nœud ML Haute Mémoire ») avec les flavors recommandés, le système d'exploitation,
+la taille du disque et le coût estimé. La sélection d'un modèle pré-remplit l'assistant
+de création de VM.
+
+% =============================================================================
+\section{Sprint 3 --- Provisionnement de Clusters Kubernetes}
+% =============================================================================
+
+\subsection{Objectif du Sprint}
+
+Concevoir et implémenter un pipeline complet de provisionnement de clusters Kubernetes
+qui initialise des clusters multi-nœuds sur HCS avec kubeadm, dans les contraintes de
+quota EIP de l'environnement cloud MESRS partagé.
+
+\subsection{Backlog du Sprint}
+
+\begin{table}[H]
+\centering
+\caption{Backlog Sprint 3}
+\label{tab:sprint3_backlog}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{ID} & \textbf{Statut} & \textbf{Description} \\
+\midrule
+US-12 & Terminé & Configurer et payer un cluster Kubernetes \\
+US-13 & Terminé & Provisionner le cluster K8s sur HCS avec kubeadm \\
+US-14 & Terminé & Diffuser la progression du provisionnement K8s via SSE \\
+US-15 & Terminé & Télécharger le kubeconfig depuis le tableau de bord \\
+US-16 & Terminé & Supprimer un cluster K8s depuis le tableau de bord \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Architecture du Cluster}
+
+Un cluster K8s sur HCS est composé d'un nœud maître (avec une EIP) et de $N$ nœuds
+workers (IP privée uniquement). Cette topologie asymétrique a été imposée par le quota
+EIP du projet HCS partagé MESRS : une seule EIP par cluster pouvait être allouée.
+
+Le nœud maître remplit simultanément trois rôles :
+\begin{enumerate}
+  \item \textbf{Serveur API Kubernetes} (port 6443) --- accessible depuis l'extérieur
+        via l'EIP du maître.
+  \item \textbf{Hôte de rebond (bastion)} --- le backend se connecte aux nœuds workers
+        via la session SSH du maître en utilisant l'API Paramiko
+        \texttt{transport.open\_channel("direct-tcpip",...)}.
+  \item \textbf{Passerelle NAT} --- le maître transfère les paquets à destination
+        d'Internet provenant des nœuds workers, grâce à des règles
+        \texttt{iptables} MASQUERADE.
+\end{enumerate}
+
+La figure~\ref{fig:k8s_arch} illustre l'architecture réseau du cluster.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  noeud/.style={rectangle, draw, rounded corners=3pt, minimum width=3cm,
+               minimum height=1.2cm, align=center, font=\small},
+  ext/.style={ellipse, draw, fill=blue!10, minimum width=2.5cm, align=center, font=\small},
+  arr/.style={-{Stealth}, thick},
+  darr/.style={-{Stealth}, thick, dashed},
+]
+  \node[ext]  (internet) at (0, 4)    {Internet};
+  \node[noeud, fill=orange!15] (maitre)  at (0, 0)
+    {Nœud Maître\\EIP : 193.95.x.x\\IP privée : 192.168.x.x};
+  \node[noeud, fill=green!10]  (worker1) at (-3.5,-3) {Worker 1\\IP privée uniquement};
+  \node[noeud, fill=green!10]  (workerN) at (3.5,-3)  {Worker N\\IP privée uniquement};
+  \node[noeud, fill=gray!10]   (backend) at (-6, 0)   {Backend\\FastAPI};
+
+  % Internet <-> Maître (EIP)
+  \draw[arr] (maitre) -- node[right,font=\scriptsize]{EIP (ports 6443, 22)} (internet);
+
+  % Maître <-> Workers (subnet VPC)
+  \draw[arr] (maitre) -- node[left,font=\scriptsize]{Subnet VPC} (worker1);
+  \draw[arr] (maitre) -- node[right,font=\scriptsize]{Subnet VPC} (workerN);
+
+  % NAT
+  \draw[darr] (worker1) to[bend left=20]
+    node[left,font=\tiny]{passerelle par défaut = IP privée maître} (maitre);
+  \draw[darr] (maitre) to[bend left=10]
+    node[right,font=\tiny]{MASQUERADE} (internet);
+
+  % Backend -> Maître (SSH direct)
+  \draw[arr] (backend) -- node[above,font=\scriptsize]{SSH (clé RSA)} (maitre);
+
+  % Backend -> Worker (jump)
+  \draw[darr] (backend) to[bend right=20]
+    node[below,font=\tiny]{SSH via hôte de rebond} (worker1);
+
+  % Labels K8s
+  \node[font=\tiny, anchor=south, align=center] at (0,-0.6) {kubeadm init\\Flannel CNI};
+  \node[font=\tiny, anchor=north] at (-3.5,-4.2) {kubeadm join};
+\end{tikzpicture}
+\caption{Architecture réseau du cluster Kubernetes sur HCS}
+\label{fig:k8s_arch}
+\end{figure}
+
+\subsection{Modèle Terraform du Cluster}
+
+Le modèle Terraform du cluster (\texttt{terraform\_cluster/main.tf}) provisionne :
+\begin{itemize}
+  \item Une instance maître \texttt{hcs\_ecs\_compute\_instance} avec
+        \texttt{source\_dest\_check = false} (requis pour le transfert de paquets NAT).
+  \item Un EIP maître et une association EIP.
+  \item $N$ instances workers \texttt{hcs\_ecs\_compute\_instance} (sans EIP).
+  \item Tous les nœuds reçoivent une clé publique RSA générée dynamiquement via
+        \texttt{cloud-config} dans \texttt{user\_data}, utilisée pour le SSH sans
+        mot de passe.
+\end{itemize}
+
+\paragraph{Génération dynamique de paire de clés SSH.}
+Une paire de clés RSA 2048 bits fraîche est générée par session de provisionnement
+via Paramiko :
+
+\begin{lstlisting}[language=python, caption={Génération de paire de clés RSA par cluster},
+                   label={lst:keygen}]
+def _generate_ssh_keypair():
+    key = paramiko.RSAKey.generate(2048)
+    public_key_line = f"ssh-rsa {key.get_base64()} k8s-cluster"
+    return key, public_key_line
+\end{lstlisting}
+
+La clé publique est transmise à Terraform en tant que variable \texttt{ssh\_public\_key}
+et injectée dans les nœuds maître et workers via le format \texttt{cloud-config} :
+
+\begin{lstlisting}[language=bash, caption={user\_data cloud-init pour l'injection de clé SSH},
+                   label={lst:cloudinit}]
+#cloud-config
+disable_root: false
+ssh_authorized_keys:
+  - ssh-rsa AAAA... k8s-cluster
+\end{lstlisting}
+
+Cela s'est avéré nécessaire car les images Ubuntu 22.04 sur HCS imposent
+\texttt{PasswordAuthentication no} au niveau système, rejetant toute connexion SSH
+par mot de passe quelles que soient les modifications de \texttt{sshd\_config}
+tentées à l'exécution.
+
+\subsection{Séquence d'Initialisation Kubernetes}
+
+La fonction \texttt{install\_kubernetes()} dans
+\texttt{backend/app/services/cluster\_service.py} exécute les étapes suivantes via SSH :
+
+\begin{enumerate}
+  \item \textbf{Attente de 120 s} pour que les VM terminent cloud-init et deviennent
+        joignables.
+  \item \textbf{Connexion au maître} via SSH direct en utilisant la clé RSA provisionnée.
+  \item \textbf{Installation des prérequis sur le maître :} désactivation du swap,
+        chargement des modules noyau (\texttt{overlay}, \texttt{br\_netfilter}),
+        configuration des paramètres sysctl, installation de \texttt{containerd} et
+        de \texttt{kubeadm/kubelet/kubectl} (K8s 1.29).
+  \item \textbf{Activation du NAT sur le maître :} détection de l'interface réseau
+        par défaut, activation du \texttt{ip\_forward} et ajout d'une règle
+        MASQUERADE \texttt{iptables}.
+  \item \textbf{Connexion aux workers via hôte de rebond} (canal \texttt{direct-tcpip}
+        Paramiko à travers le maître).
+  \item \textbf{Configuration des workers :} remplacement de la passerelle par défaut
+        par l'IP privée du maître, remplacement du DNS (\texttt{/etc/resolv.conf})
+        par les DNS Google (8.8.8.8), installation des prérequis.
+  \item \textbf{kubeadm init sur le maître} avec le CIDR pod \texttt{10.244.0.0/16},
+        en annonçant l'IP privée et en ajoutant l'IP publique comme
+        \texttt{--apiserver-cert-extra-sans} pour l'accès externe.
+  \item \textbf{Déploiement du CNI Flannel} via \texttt{kubectl apply}.
+  \item \textbf{Génération de la commande join} et rattachement de tous les workers
+        au cluster.
+  \item \textbf{Récupération du kubeconfig} et réécriture de l'URL du serveur API
+        de l'IP privée vers l'EIP du maître.
+\end{enumerate}
+
+\subsection{Solution Réseau : Maître comme Passerelle NAT}
+
+\paragraph{Problème.}
+Les nœuds workers n'ont pas d'EIP et donc aucune route internet directe. Sans accès
+à Internet, \texttt{apt-get} ne peut pas télécharger les paquets K8s, et
+\texttt{containerd} ne peut pas récupérer les images de conteneurs.
+
+\paragraph{Investigation.}
+Les tentatives initiales d'activation du transfert NAT avec uniquement des règles
+MASQUERADE \texttt{iptables} sur le maître se sont révélées insuffisantes. Les paquets
+envoyés par les workers via le maître étaient silencieusement abandonnés malgré la
+règle iptables active.
+
+\paragraph{Cause racine.}
+L'hyperviseur HCS applique un contrôle \texttt{source\_dest\_check} sur chaque carte
+réseau de VM : les paquets arrivant sur la carte du maître dont l'IP de destination
+n'est pas celle du maître lui-même sont rejetés au niveau de l'hyperviseur, avant
+d'atteindre la pile réseau Linux. Il s'agit d'un mécanisme anti-usurpation qui ne
+peut pas être désactivé depuis l'intérieur de la VM.
+
+\paragraph{Solution.}
+L'attribut \texttt{source\_dest\_check = false} a été ajouté au bloc \texttt{network}
+du maître dans Terraform, ce qui désactive le contrôle au niveau de l'hyperviseur via
+l'API HCS :
+
+\begin{lstlisting}[language=bash, caption={Terraform : désactivation de source\_dest\_check sur la carte réseau du maître},
+                   label={lst:sdc}]
+resource "hcs_ecs_compute_instance" "master" {
+  ...
+  network {
+    uuid              = var.subnet_id
+    source_dest_check = false  # autorise le transfert NAT
+  }
+}
+\end{lstlisting}
+
+Avec cette modification, le trafic internet des workers est correctement acheminé
+via la règle MASQUERADE du maître vers Internet.
+
+\subsection{Assistant et Tableau de Bord du Cluster}
+
+L'assistant de configuration du cluster (\texttt{frontend/app/build-cluster/}) collecte
+le nom du cluster, les flavors du maître et des workers, le nombre de workers, l'image
+OS et la taille du disque. Après le paiement via Stripe, la progression du
+provisionnement est diffusée vers le frontend via un endpoint SSE dédié
+(\texttt{GET /api/clusters/progress/:session\_id}) avec six étapes labelisées.
+
+\screenshotplaceholder{Assistant de provisionnement du cluster Kubernetes}
+
+\screenshotplaceholder{Flux de progression SSE du cluster K8s --- les 6 étapes sont complètes}
+
+Une fois le cluster en statut \texttt{running}, le tableau de bord l'affiche aux côtés
+des VM ordinaires avec un bouton « Télécharger le kubeconfig ».
+
+\screenshotplaceholder{Tableau de bord affichant un cluster Kubernetes en cours d'exécution avec l'IP du maître et le nombre de workers}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Trois sprints itératifs ont livré une plateforme cloud en libre-service complète :
+le Sprint 1 a établi le cœur du provisionnement de VM ; le Sprint 2 a ajouté la
+recommandation IA, l'accès SSH et la supervision ; le Sprint 3 a résolu le défi
+non trivial du provisionnement de clusters Kubernetes dans les contraintes de quota
+EIP de l'environnement partagé MESRS. Le schéma maître-comme-passerelle-NAT,
+nécessitant un remplacement du \texttt{source\_dest\_check} au niveau Terraform,
+a été la solution architecturale clé. Le chapitre suivant valide la plateforme au
+regard de ses objectifs initiaux.

@@ -1,0 +1,48 @@
+\input{preamble}
+
+\begin{document}
+
+% ─── Cover page (no page number) ──────────────────────────────────────────────
+\pagenumbering{gobble}
+\input{frontmatter/cover-page}
+\clearpage
+
+% ─── Supervisor validation form ───────────────────────────────────────────────
+\input{frontmatter/validation-form}
+\clearpage
+
+% ─── Roman-numbered front matter ──────────────────────────────────────────────
+\pagenumbering{roman}
+\input{frontmatter/dedication}
+\input{frontmatter/acknowledgments}
+\input{frontmatter/abstract}
+
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+\input{frontmatter/abbreviations}
+\clearpage
+
+% ─── Main content (arabic page numbers) ───────────────────────────────────────
+\pagenumbering{arabic}
+\input{chapters/00-general-introduction}
+\input{chapters/01-general-context}
+\input{chapters/02-requirements-and-architecture}
+\input{chapters/03-design-and-realization}
+\input{chapters/04-validation-and-evaluation}
+\input{chapters/05-general-conclusion}
+
+% ─── Bibliography ─────────────────────────────────────────────────────────────
+\clearpage
+\printbibliography[title={Bibliography / Netography}]
+\addcontentsline{toc}{chapter}{Bibliography / Netography}
+
+% ─── Appendices ───────────────────────────────────────────────────────────────
+\appendix
+\input{appendices/appendix-a-api}
+\input{appendices/appendix-b-terraform}
+
+\end{document}

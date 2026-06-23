@@ -51,6 +51,7 @@ terraform_states/
 *.tfstate
 *.tfstate.*
 *.tfvars
+*.tfvars.json
 
 # Logs
 npm-debug.log*

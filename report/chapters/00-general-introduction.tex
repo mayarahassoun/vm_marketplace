@@ -1,0 +1,68 @@
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\markboth{Introduction Générale}{Introduction Générale}
+
+Le cloud computing est devenu le socle de la recherche scientifique et de
+l'enseignement supérieur modernes. La capacité à provisionner des ressources
+informatiques à la demande --- machines virtuelles, conteneurs et environnements
+cluster --- supprime les obstacles traditionnels liés aux cycles d'acquisition de
+matériel et permet aux chercheurs d'itérer plus rapidement. En Tunisie, le Ministère
+de l'Enseignement Supérieur et de la Recherche Scientifique (MESRS) opère une
+infrastructure cloud nationale Huawei Cloud Stack (HCS) à l'adresse
+\textit{mesrscloud.rnu.tn}, mettant des ressources cloud privées à la disposition
+des institutions académiques à travers le pays. Cependant, l'accès à ces ressources
+est resté un processus manuel et technique : les utilisateurs doivent soumettre des
+demandes aux administrateurs, attendre le provisionnement et recevoir leurs identifiants
+sans aucune visibilité sur le processus et sans autonomie de libre-service.
+
+\textbf{Mission de stage.} Ce projet de fin d'études a été réalisé chez Huawei
+Technologies Tunisie avec la mission suivante : concevoir et développer une plateforme
+cloud en libre-service --- \textit{VM Marketplace} --- permettant aux utilisateurs
+authentifiés de l'environnement HCS MESRS de configurer, payer, provisionner,
+superviser et gérer de manière autonome des machines virtuelles et des clusters
+Kubernetes via une interface web intuitive, sans intervention d'un administrateur pour
+les opérations courantes.
+
+\textbf{Problématique.} La problématique centrale de ce projet est la suivante :
+\textit{Comment permettre aux utilisateurs académiques de l'infrastructure cloud HCS
+du MESRS de provisionner et gérer de façon autonome des machines virtuelles et des
+clusters Kubernetes via une plateforme conviviale intégrant paiement, recommandation
+IA, suivi en temps réel et supervision automatisée ?}
+
+\textbf{Objectifs.} Pour répondre à cette problématique, cinq objectifs techniques
+ont été définis :
+\begin{enumerate}
+  \item Implémenter une application web full-stack sécurisée avec authentification
+        utilisateur, assistant de provisionnement de VM en plusieurs étapes, intégration
+        du paiement Stripe et infrastructure as code Terraform sur HCS.
+  \item Développer un moteur de recommandation IA qui traduit des descriptions
+        textuelles de charge de travail en spécifications de VM optimales à l'aide
+        d'un LLM hébergé localement.
+  \item Ajouter un terminal SSH dans le navigateur et une installation automatisée
+        de Netdata pour chaque VM provisionnée.
+  \item Concevoir et implémenter un pipeline de provisionnement de clusters Kubernetes
+        qui initialise des clusters multi-nœuds sur HCS avec kubeadm, en incluant une
+        solution réseau permettant aux nœuds workers d'accéder à Internet malgré les
+        contraintes de quota EIP.
+  \item Valider l'ensemble de la plateforme sur l'infrastructure HCS de production.
+\end{enumerate}
+
+\textbf{Structure du rapport.} Ce rapport est organisé en quatre chapitres suivis
+d'une conclusion générale.
+
+\begin{itemize}
+  \item \textbf{Chapitre 1 --- Contexte général} présente l'organisme d'accueil,
+        situe le projet dans l'écosystème cloud académique du MESRS, étudie les
+        solutions existantes et justifie l'approche proposée et la méthodologie.
+
+  \item \textbf{Chapitre 2 --- Analyse et Architecture} identifie les acteurs et
+        les besoins, établit le backlog produit et détaille l'architecture à trois
+        services et les choix technologiques.
+
+  \item \textbf{Chapitre 3 --- Conception et Réalisation} documente l'implémentation
+        à travers trois sprints itératifs : provisionnement de VM et authentification,
+        recommandation IA et supervision, et gestion des clusters Kubernetes.
+
+  \item \textbf{Chapitre 4 --- Tests et Validation} présente les résultats des tests
+        et évalue la plateforme au regard des objectifs initiaux.
+\end{itemize}

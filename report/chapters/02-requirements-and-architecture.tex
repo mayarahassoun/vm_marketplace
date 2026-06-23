@@ -1,0 +1,428 @@
+\chapter{Analyse et Architecture}
+
+\section{Introduction}
+
+Ce chapitre formalise les besoins de VM Marketplace, identifie les acteurs du système,
+établit le backlog produit et décrit l'architecture technique ainsi que les choix
+technologiques qui sous-tendent l'implémentation.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Identification des Acteurs}
+% ─────────────────────────────────────────────────────────────────────────────
+
+La plateforme distingue deux acteurs :
+
+\begin{description}
+  \item[Visiteur (utilisateur non authentifié)] Toute personne accédant à l'application
+        web VM Marketplace sans s'être authentifiée. Un visiteur peut accéder au moteur
+        de recommandation IA et à la page marketplace pour explorer les modèles de VM,
+        mais ne peut effectuer aucune opération de provisionnement ni de gestion.
+
+  \item[Utilisateur authentifié (Chercheur / Étudiant)] Toute personne ayant créé un
+        compte et s'étant connectée. Un utilisateur authentifié peut provisionner des
+        machines virtuelles et des clusters Kubernetes, gérer ses ressources via le
+        tableau de bord, accéder aux terminaux SSH, consulter les tableaux de bord de
+        supervision et télécharger les fichiers kubeconfig. Toutes les ressources
+        provisionnées sont isolées par compte utilisateur.
+\end{description}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Besoins Fonctionnels}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Module Authentification}
+
+\begin{itemize}
+  \item En tant que visiteur, je veux m'inscrire avec un e-mail et un mot de passe
+        afin d'accéder aux fonctionnalités de provisionnement de la plateforme.
+  \item En tant que visiteur, je veux me connecter avec mes identifiants afin de
+        recevoir un jeton JWT valide pendant 30 minutes.
+  \item En tant qu'utilisateur authentifié, je veux que ma session soit sécurisée par
+        un jeton Bearer JWT afin que mes ressources restent privées.
+\end{itemize}
+
+\subsection{Module Provisionnement de VM}
+
+\begin{itemize}
+  \item En tant qu'utilisateur authentifié, je veux sélectionner une configuration de
+        VM via un assistant en plusieurs étapes (type d'instance, OS, stockage, réseau,
+        région, révision) afin de personnaliser ma machine avant de valider le paiement.
+  \item En tant qu'utilisateur authentifié, je veux payer ma VM via un formulaire
+        Stripe afin que le coût soit débité de ma carte avant le début du
+        provisionnement.
+  \item En tant qu'utilisateur authentifié, je veux voir une progression en temps réel
+        étape par étape (via Server-Sent Events) pendant le provisionnement afin de
+        connaître l'état actuel sans rafraîchir la page.
+  \item En tant qu'utilisateur authentifié, je veux recevoir un e-mail de confirmation
+        une fois ma VM provisionnée afin de disposer des informations d'accès dans un
+        format durable.
+\end{itemize}
+
+\subsection{Module Gestion des VM}
+
+\begin{itemize}
+  \item En tant qu'utilisateur authentifié, je veux consulter toutes mes VM
+        provisionnées dans un tableau de bord afin de les gérer depuis un seul endroit.
+  \item En tant qu'utilisateur authentifié, je veux supprimer une VM depuis le tableau
+        de bord afin que les ressources HCS correspondantes soient détruites via
+        \texttt{terraform destroy}.
+  \item En tant qu'utilisateur authentifié, je veux ouvrir un terminal SSH dans le
+        navigateur vers ma VM afin d'effectuer des opérations d'administration sans
+        installer de client SSH.
+  \item En tant qu'utilisateur authentifié, je veux consulter le tableau de bord de
+        supervision Netdata de ma VM (CPU, mémoire, disque, réseau) intégré dans la
+        plateforme afin d'évaluer l'utilisation des ressources en un coup d'œil.
+\end{itemize}
+
+\subsection{Module Recommandation IA}
+
+\begin{itemize}
+  \item En tant que visiteur ou utilisateur authentifié, je veux décrire ma charge de
+        travail en langage naturel afin que le moteur IA recommande le flavor et la
+        configuration de VM appropriés.
+  \item En tant que visiteur ou utilisateur authentifié, je veux voir le niveau de
+        confiance et le raisonnement de l'IA avec la recommandation afin d'évaluer
+        si elle correspond à mes besoins.
+\end{itemize}
+
+\subsection{Module Cluster Kubernetes}
+
+\begin{itemize}
+  \item En tant qu'utilisateur authentifié, je veux configurer un cluster Kubernetes
+        (flavor maître, flavor worker, nombre de workers, taille disque, région) via un
+        assistant afin de déployer des clusters multi-nœuds sans expertise Kubernetes.
+  \item En tant qu'utilisateur authentifié, je veux payer le cluster via Stripe puis
+        suivre la progression du provisionnement étape par étape afin de savoir quand
+        le cluster est prêt.
+  \item En tant qu'utilisateur authentifié, je veux télécharger le fichier kubeconfig
+        de mon cluster depuis le tableau de bord afin de me connecter avec
+        \texttt{kubectl} depuis ma machine locale.
+  \item En tant qu'utilisateur authentifié, je veux supprimer un cluster depuis le
+        tableau de bord afin que toutes les ressources HCS associées soient détruites
+        proprement.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Besoins Non Fonctionnels}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Besoins non fonctionnels}
+\label{tab:nfr}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Catégorie} & \textbf{Besoin} & \textbf{Cible} \\
+\midrule
+Sécurité & Authentification JWT & Jetons expirant après 30 min ; hachage bcrypt des mots de passe \\
+Sécurité & Paiement & Données de carte gérées exclusivement par l'API PCI Stripe \\
+Sécurité & Isolation SSH & Chaque cluster utilise une paire de clés RSA unique générée par session \\
+Performance & Temps de réponse API & Tous les endpoints hors provisionnement répondent en moins de 500 ms \\
+Performance & Recommandation IA & Recommandation retournée en moins de 60 secondes \\
+Ergonomie & UX de l'assistant & Formulaire multi-étapes avec validation à chaque étape ; aucune donnée perdue en navigation arrière \\
+Fiabilité & Suivi de progression & Le flux SSE maintient la connexion pendant toute la durée du provisionnement (5--10 min) \\
+Scalabilité & Utilisateurs concurrents & Chaque provisionnement s'exécute dans un thread en arrière-plan ; l'API reste réactive \\
+Maintenabilité & Isolation IaC & Chaque VM/cluster possède son propre répertoire \texttt{terraform\_states/} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Diagramme de Cas d'Utilisation Global}
+% ─────────────────────────────────────────────────────────────────────────────
+
+La figure~\ref{fig:use_case} présente le diagramme de cas d'utilisation global de
+VM Marketplace.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  uc/.style={ellipse, draw, minimum width=3.5cm, minimum height=0.7cm, align=center,
+             font=\scriptsize},
+  arr/.style={-{Stealth}, dashed, thin},
+]
+  % Acteurs
+  \node[font=\small\bfseries] (visitor) at (-5, 0) {Visiteur};
+  \node[font=\small\bfseries, align=center] (user) at (-5,-5)
+    {Utilisateur\\Authentifié};
+
+  % Frontière système
+  \draw[thick] (-1,-8) rectangle (9,2);
+  \node[font=\small, anchor=north west] at (-1,2) {VM Marketplace};
+
+  % Cas d'utilisation
+  \node[uc] (reg)   at (4, 1.2) {S'inscrire / Se connecter};
+  \node[uc] (ai)    at (4, 0.0) {Recommandation IA};
+  \node[uc] (mkt)   at (4,-1.2) {Parcourir la Marketplace};
+  \node[uc] (prov)  at (4,-2.4) {Provisionner une VM};
+  \node[uc] (dash)  at (4,-3.6) {Gérer le Tableau de Bord};
+  \node[uc] (ssh)   at (4,-4.8) {Terminal SSH Navigateur};
+  \node[uc] (mon)   at (4,-6.0) {Consulter la Supervision};
+  \node[uc] (k8s)   at (4,-7.2) {Provisionner Cluster K8s};
+
+  % Associations Visiteur
+  \draw (visitor) -- (reg);
+  \draw (visitor) -- (ai);
+  \draw (visitor) -- (mkt);
+
+  % Associations Utilisateur
+  \draw (user) -- (ai);
+  \draw (user) -- (mkt);
+  \draw (user) -- (prov);
+  \draw (user) -- (dash);
+  \draw (user) -- (ssh);
+  \draw (user) -- (mon);
+  \draw (user) -- (k8s);
+
+  % Include paiement
+  \node[uc, fill=yellow!20] (pay)  at (7.5,-2.4) {Paiement Stripe};
+  \node[uc, fill=yellow!20] (payk) at (7.5,-7.2) {Paiement Stripe};
+  \draw[arr] (prov) -- node[above,font=\tiny]{$\langle\langle$include$\rangle\rangle$} (pay);
+  \draw[arr] (k8s)  -- node[above,font=\tiny]{$\langle\langle$include$\rangle\rangle$} (payk);
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation global --- VM Marketplace}
+\label{fig:use_case}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Diagramme de Classes}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Le modèle de données central est composé de trois entités ORM SQLAlchemy stockées
+dans une base de données SQLite, comme illustré à la figure~\ref{fig:class_diagram}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  class/.style={rectangle, draw, minimum width=5cm, font=\small},
+  arr/.style={-{Stealth[open]}, thick},
+]
+  % Classe Utilisateur
+  \node[class] (user_title) at (0, 0) {\textbf{Utilisateur}};
+  \node[class, anchor=north, text width=5cm] (user_attrs) at (user_title.south)
+    {\underline{id : Integer (PK)} \\ email : String \\ mot\_de\_passe\_hash : String \\
+     date\_creation : DateTime};
+
+  % Classe MachineVirtuelle
+  \node[class] (vm_title) at (7.5, 0) {\textbf{MachineVirtuelle}};
+  \node[class, anchor=north, text width=7.5cm] (vm_attrs) at (vm_title.south)
+    {\underline{id : Integer (PK)} \\ utilisateur\_id : Integer (FK) \\
+     nom\_instance, id\_vm\_cloud : String \\ statut : String \\
+     id\_flavor, id\_image : String \\ ip\_publique, ip\_privee : String \\
+     url\_netdata : String \\ date\_creation : DateTime};
+
+  % Classe Cluster
+  \node[class] (cl_title) at (7.5, -6) {\textbf{Cluster}};
+  \node[class, anchor=north, text width=7.5cm] (cl_attrs) at (cl_title.south)
+    {\underline{id : Integer (PK)} \\ utilisateur\_id : Integer (FK) \\
+     nom, statut : String \\ nb\_workers : Integer \\
+     ip\_publique\_maitre, ip\_privee\_maitre : String \\
+     ips\_workers : Text (JSON) \\ kubeconfig : Text \\
+     date\_creation : DateTime};
+
+  % Associations
+  \draw[arr] (vm_title.west) -- node[above,font=\scriptsize]{1 \quad *} (user_title.east);
+  \draw[arr] (cl_title.west) -- node[right,font=\scriptsize]{* \quad 1} ++(-2,0) |- (user_title.south);
+\end{tikzpicture}
+\caption{Modèle de données principal (entités ORM SQLAlchemy)}
+\label{fig:class_diagram}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Backlog Produit}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Le tableau~\ref{tab:backlog} présente le backlog produit organisé par sprint.
+
+\begin{table}[H]
+\centering
+\caption{Backlog produit}
+\label{tab:backlog}
+\begin{tabularx}{\linewidth}{clXl}
+\toprule
+\textbf{ID} & \textbf{Sprint} & \textbf{Histoire Utilisateur} & \textbf{Priorité} \\
+\midrule
+US-01 & 1 & S'inscrire et se connecter avec e-mail / mot de passe & Critique \\
+US-02 & 1 & Configurer une VM via l'assistant multi-étapes & Critique \\
+US-03 & 1 & Payer via le formulaire Stripe & Critique \\
+US-04 & 1 & Provisionner la VM sur HCS via Terraform & Critique \\
+US-05 & 1 & Diffuser la progression du provisionnement via SSE & Haute \\
+US-06 & 1 & Recevoir un e-mail de confirmation après provisionnement & Moyenne \\
+US-07 & 1 & Consulter et supprimer ses VM dans le tableau de bord & Critique \\
+US-08 & 2 & Décrire sa charge de travail et recevoir une reco IA & Haute \\
+US-09 & 2 & Parcourir les modèles de VM préconfigurés (marketplace) & Moyenne \\
+US-10 & 2 & Ouvrir un terminal SSH navigateur vers sa VM & Haute \\
+US-11 & 2 & Consulter le tableau de bord Netdata par VM & Haute \\
+US-12 & 3 & Configurer et payer un cluster Kubernetes & Critique \\
+US-13 & 3 & Provisionner le cluster K8s sur HCS avec kubeadm & Critique \\
+US-14 & 3 & Diffuser la progression du provisionnement K8s via SSE & Haute \\
+US-15 & 3 & Télécharger le kubeconfig depuis le tableau de bord & Critique \\
+US-16 & 3 & Supprimer un cluster K8s depuis le tableau de bord & Haute \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Architecture du Système}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Architecture Logique}
+
+VM Marketplace adopte une \textbf{architecture client-serveur à trois services} avec
+une séparation claire des responsabilités :
+
+\begin{enumerate}
+  \item \textbf{Frontend Next.js (port 3000)} --- rend l'interface utilisateur, gère
+        l'état global via React Context, communique avec le backend via REST et SSE,
+        et affiche un terminal WebSocket xterm.js.
+  \item \textbf{Backend FastAPI (port 8000)} --- gère l'authentification, le CRUD des
+        VM et clusters, le traitement des paiements, l'orchestration des sous-processus
+        Terraform et l'installation Netdata via SSH.
+  \item \textbf{Moteur IA (port 8001)} --- processus FastAPI distinct qui envoie des
+        prompts en langage naturel à une instance Ollama locale, analyse la réponse
+        JSON du LLM et la mappe vers une recommandation de flavor HCS.
+\end{enumerate}
+
+Le moteur IA est intentionnellement isolé du backend principal afin d'éviter de
+bloquer l'API durant l'inférence LLM, qui peut prendre 10 à 30 secondes.
+
+\subsection{Architecture de Déploiement}
+
+La figure~\ref{fig:deploy_arch} présente l'architecture de déploiement avec toutes
+les dépendances externes.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, rounded corners=3pt, minimum width=3.5cm,
+              minimum height=1cm, align=center, font=\small},
+  cloud/.style={ellipse, draw, minimum width=2.8cm, minimum height=1cm,
+                align=center, font=\small, fill=blue!10},
+  arr/.style={-{Stealth}, thick},
+  lbl/.style={font=\scriptsize, midway},
+]
+  % Serveur de développement
+  \begin{scope}[local bounding box=dev]
+    \node[box, fill=green!10]  (fe)     at (0,  3.5) {Frontend Next.js\\port 3000};
+    \node[box, fill=orange!10] (be)     at (0,  2.0) {Backend FastAPI\\port 8000};
+    \node[box, fill=purple!10] (ai)     at (0,  0.5) {Moteur IA\\port 8001};
+    \node[box, fill=gray!10]   (ollama) at (0, -1.0) {Ollama\\port 11434\\llama3.1};
+    \node[box, fill=yellow!10] (sqlite) at (0, -2.5) {SQLite\\vm\_marketplace.db};
+    \node[box, fill=teal!10]   (tf)     at (0, -4.0) {Terraform\\huaweicloud/hcs};
+  \end{scope}
+  \node[draw, dashed, rounded corners, fit=(dev),
+        label=above:{\small Serveur de développement}] {};
+
+  % Services externes
+  \node[cloud]                  (hcs)    at (6,  1.5) {Cloud HCS\\mesrscloud.rnu.tn};
+  \node[cloud, fill=pink!20]    (stripe) at (6,  0.0) {API Stripe\\Paiement};
+  \node[cloud, fill=cyan!10]    (resend) at (6, -1.5) {API Resend\\E-mail};
+
+  % Ressources HCS
+  \node[box, fill=blue!5] (vm)   at (10,  1.5) {Instances ECS\\+ EIP};
+  \node[box, fill=blue!5] (k8s)  at (10,  0.0) {Cluster K8s\\Maître + Workers};
+  \node[box, fill=blue!5] (netd) at (10, -1.5) {Netdata\\par VM};
+
+  % Flèches
+  \draw[arr] (fe)   -- node[lbl,above]{REST/SSE} (be);
+  \draw[arr] (be)   -- node[lbl,right]{proxy}    (ai);
+  \draw[arr] (ai)   -- (ollama);
+  \draw[arr] (be)   -- (sqlite);
+  \draw[arr] (be)   -- node[lbl,above]{sous-proc.} (tf);
+  \draw[arr] (tf)   -- (hcs);
+  \draw[arr] (be)   -- (stripe);
+  \draw[arr] (be)   -- (resend);
+  \draw[arr] (hcs)  -- (vm);
+  \draw[arr] (hcs)  -- (k8s);
+  \draw[arr] (be)   to[bend left=15] node[lbl,above]{SSH (Paramiko)} (vm);
+  \draw[arr] (be)   to[bend left=20] node[lbl,above]{SSH (jump)} (k8s);
+  \draw[arr] (vm)   -- (netd);
+\end{tikzpicture}
+\caption{Architecture de déploiement de VM Marketplace}
+\label{fig:deploy_arch}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Environnement de Travail}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Environnement de développement}
+\label{tab:env}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Catégorie} & \textbf{Outils / Versions} \\
+\midrule
+Machine de développement & Windows 11 / macOS (projet multiplateforme) \\
+IDE & Visual Studio Code avec extensions Python, ESLint, Prettier \\
+Contrôle de version & Git + GitHub (dépôt \texttt{vm\_marketplace}) \\
+Plateforme cloud & Huawei Cloud Stack --- \textit{mesrscloud.rnu.tn}, région \texttt{tn-global-1} \\
+Terraform & v1.x avec fournisseur \texttt{huaweicloud/hcs} v2.4.0 \\
+Python & 3.11 \\
+Node.js & 18 LTS \\
+Base de données & SQLite 3 (développement) ; fichier \texttt{vm\_marketplace.db} \\
+Runtime LLM & Ollama v0.x avec le modèle \texttt{llama3.1} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Choix Technologiques}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Frontend : Next.js 14}
+
+Next.js a été choisi pour son routage basé sur les fichiers, ses capacités de
+rendu côté serveur et son écosystème mature. TypeScript garantit la sécurité des
+types à toutes les frontières d'API. Tailwind CSS offre un style utilitaire rapide.
+Stripe.js et la bibliothèque Stripe Elements gèrent la collecte des données de carte
+conforme PCI dans le navigateur~\cite{nextjs_docs, tailwind_docs}.
+
+\subsection{Backend : FastAPI}
+
+FastAPI a été retenu pour sa gestion asynchrone des requêtes, sa documentation
+OpenAPI automatique et ses annotations de types Python natives avec validation
+Pydantic. Comparé à Flask (synchrone, moins structuré) et Django (couplage ORM plus
+fort), FastAPI offre le meilleur équilibre entre performance et productivité pour un
+service orienté API~\cite{fastapi_docs}. SQLAlchemy fournit la couche ORM pour SQLite.
+
+\subsection{Infrastructure as Code : Terraform}
+
+Terraform a été choisi pour le provisionnement des VM et des clusters car il fournit
+des descriptions d'infrastructure déclaratives, une gestion d'état et des opérations
+\texttt{apply} idempotentes. Le fournisseur \texttt{huaweicloud/hcs} (v2.4.0) supporte
+tous les types de ressources HCS requis~\cite{hcs_terraform_provider}.
+
+\subsection{Moteur IA : Ollama + Llama 3.1}
+
+Le moteur de recommandation IA utilise Ollama pour servir le modèle Llama~3.1 (8B)
+localement~\cite{ollama_docs, llama31}. Cela évite d'envoyer des descriptions de charge
+de travail potentiellement sensibles à des API LLM cloud externes. Le moteur analyse
+la sortie JSON structurée du LLM et la mappe vers un flavor HCS concret via un module
+\texttt{mapper.py} personnalisé.
+
+\subsection{Connectivité SSH : Paramiko}
+
+Paramiko~\cite{paramiko_docs} est utilisé à deux fins : (1) l'installation
+post-provisionnement de Netdata sur les VM individuelles via SSH direct ; (2) la
+connexion SSH aux nœuds workers en IP privée via le maître comme hôte de rebond,
+en utilisant \texttt{transport.open\_channel("direct-tcpip",...)}.
+
+\subsection{Supervision : Netdata}
+
+Netdata~\cite{netdata_docs} a été retenu pour son installation agent sans configuration
+et son tableau de bord web intégré accessible sur le port 19999. Après installation,
+l'URL Netdata de la VM est stockée en base de données et affichée sous forme d'iframe
+dans la page de supervision de la plateforme.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Ce chapitre a formalisé les besoins, le modèle de données, le backlog produit et
+l'architecture technique de VM Marketplace. L'architecture à trois services sépare
+clairement le rendu de l'interface, la logique métier et l'inférence IA, tandis que
+Terraform délègue toute la gestion des ressources HCS à un outil IaC déclaratif.
+Le chapitre suivant présente les décisions de conception et d'implémentation prises
+lors de chacun des trois sprints de développement.

@@ -1,0 +1,37 @@
+\chapter{Référence des Endpoints REST}
+\label{app:api}
+
+Cette annexe liste les principaux endpoints REST exposés par le backend FastAPI.
+Tous les endpoints protégés nécessitent un en-tête
+\texttt{Authorization: Bearer <jeton>}.
+
+\begin{longtable}{llX}
+\toprule
+\textbf{Méthode} & \textbf{Chemin} & \textbf{Description} \\
+\midrule
+\endhead
+POST & /api/register & Inscrire un nouvel utilisateur \\
+POST & /api/login & Authentifier et recevoir un JWT \\
+GET  & /api/users/me & Retourner l'utilisateur authentifié courant \\
+\midrule
+POST & /api/payment/create-payment-intent & Confirmer le paiement Stripe, lancer le provisionnement de VM \\
+GET  & /api/payment/progress/:session\_id & Flux SSE de progression du provisionnement \\
+\midrule
+GET  & /api/vms/ & Lister toutes les VM de l'utilisateur courant \\
+DELETE & /api/vms/:vm\_id & Supprimer une VM (exécute \texttt{terraform destroy}) \\
+\midrule
+GET  & /api/ssh/terminal/:vm\_id & Terminal SSH WebSocket pour une VM \\
+GET  & /api/monitoring/:vm\_id & Retourner l'URL Netdata d'une VM \\
+\midrule
+POST & /api/ai/recommend & Proxy vers le moteur IA ; retourne la recommandation de VM \\
+GET  & /api/ai/health & Vérification de l'état du moteur IA \\
+\midrule
+POST & /api/clusters/pay-and-create & Confirmer le paiement Stripe, lancer le provisionnement du cluster K8s \\
+GET  & /api/clusters/progress/:session\_id & Flux SSE de progression du cluster \\
+GET  & /api/clusters/ & Lister tous les clusters de l'utilisateur courant \\
+GET  & /api/clusters/:cluster\_id/kubeconfig & Télécharger le kubeconfig YAML \\
+DELETE & /api/clusters/:cluster\_id & Supprimer un cluster (exécute \texttt{terraform destroy}) \\
+\bottomrule
+\caption{Endpoints REST de VM Marketplace}
+\label{tab:api_endpoints}
+\end{longtable}

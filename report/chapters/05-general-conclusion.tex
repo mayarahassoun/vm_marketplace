@@ -1,0 +1,119 @@
+\chapter*{Conclusion Générale}
+\addcontentsline{toc}{chapter}{Conclusion Générale}
+\markboth{Conclusion Générale}{Conclusion Générale}
+
+\section*{Synthèse de la Démarche}
+
+Ce projet a cherché à répondre à une problématique concrète : comment permettre aux
+chercheurs et aux étudiants des institutions académiques tunisiennes de provisionner
+et gérer de façon autonome des machines virtuelles et des clusters Kubernetes sur
+l'infrastructure Huawei Cloud Stack (HCS) du MESRS, sans dépendre d'une intervention
+manuelle d'un administrateur ?
+
+La réponse apportée est \textbf{VM Marketplace}, une plateforme cloud full-stack en
+libre-service développée sur six mois de stage chez Huawei Technologies Tunisie.
+En travaillant de manière itérative à travers trois sprints, nous avons bâti une
+architecture à trois services --- un frontend Next.js, un backend FastAPI et un moteur
+d'inférence IA distinct --- qui intègre le paiement Stripe, le provisionnement
+d'infrastructure IaC via Terraform sur HCS, la diffusion SSE pour le suivi en temps
+réel, des recommandations de VM assistées par IA via un modèle Llama~3.1 hébergé
+localement, un accès SSH dans le navigateur, la supervision Netdata et un gestionnaire
+complet du cycle de vie des clusters Kubernetes.
+
+\section*{Principaux Résultats}
+
+\begin{itemize}
+  \item Le provisionnement bout en bout de VM sur l'environnement HCS de production
+        a été validé, avec des VM atteignant l'état \texttt{Running} et la supervision
+        Netdata installée automatiquement via SSH.
+  \item Un cluster Kubernetes à deux nœuds (K8s v1.29.15) a été provisionné avec
+        succès, les deux nœuds atteignant l'état \texttt{Ready}. L'architecture réseau
+        maître-comme-passerelle-NAT --- combinant \texttt{source\_dest\_check=false}
+        au niveau Terraform avec des règles \texttt{iptables} MASQUERADE Linux ---
+        a résolu la contrainte de quota EIP sans nécessiter de ressources cloud
+        supplémentaires.
+  \item Le moteur de recommandation IA, fonctionnant entièrement sur une instance
+        Ollama locale, a correctement mappé des descriptions textuelles de charges de
+        travail vers des recommandations de flavor HCS avec score de confiance.
+  \item Les cinq objectifs initiaux ont été atteints et validés sur l'infrastructure
+        de production.
+\end{itemize}
+
+\section*{Difficultés et Enseignements}
+
+Le défi technique le plus significatif de ce projet a été la découverte et la
+résolution du comportement \texttt{source\_dest\_check} au niveau de l'hyperviseur
+HCS. Cette contrainte n'est pas documentée dans la documentation standard du fournisseur
+Terraform \texttt{huaweicloud/hcs} et n'a été identifiée qu'après une élimination
+systématique des autres causes possibles (règles iptables, paramètres noyau, DNS).
+L'enseignement retenu est que les comportements spécifiques à l'hyperviseur cloud
+requièrent une investigation empirique et ne peuvent pas être supposés conformes aux
+comportements génériques de la mise en réseau Linux.
+
+Sur le plan du génie logiciel, ce projet a renforcé la valeur d'une approche itérative
+lorsqu'on travaille dans un environnement à inconnues externes : chaque sprint a validé
+un ensemble d'hypothèses sur l'environnement HCS et a adapté la conception en
+conséquence.
+
+\section*{Compétences Acquises}
+
+Ce projet m'a permis de construire et de consolider les compétences suivantes :
+
+\begin{itemize}
+  \item \textbf{Infrastructure cloud :} gestion des ressources Huawei Cloud Stack,
+        Terraform IaC, configuration réseau VPC, gestion des EIP et configuration
+        cloud-init.
+  \item \textbf{Administration Kubernetes :} initialisation de cluster avec kubeadm,
+        déploiement du CNI Flannel, opérations kubectl et gestion du kubeconfig.
+  \item \textbf{Développement backend :} API REST FastAPI, Server-Sent Events,
+        authentification JWT, gestion de threads en arrière-plan, automatisation SSH
+        Paramiko.
+  \item \textbf{Intégration IA :} ingénierie de prompts LLM avec sortie JSON
+        structurée, hébergement de modèle local avec Ollama, systèmes de recommandation
+        à score de confiance.
+  \item \textbf{Intégration full-stack :} coordination de trois services indépendants
+        (frontend, backend, moteur IA) avec un contrat d'API partagé.
+\end{itemize}
+
+\section*{Apport pour l'Organisme d'Accueil}
+
+VM Marketplace fournit à Huawei Technologies Tunisie un prototype fonctionnel de portail
+cloud en libre-service adapté aux spécificités de l'environnement HCS MESRS. La
+solution réseau pour les nœuds workers Kubernetes privés documentée dans ce rapport
+(\texttt{source\_dest\_check} + iptables MASQUERADE) constitue une connaissance
+technique réutilisable pour les futurs déploiements HCS. La plateforme démontre
+également qu'une couche de recommandation IA basée sur un LLM hébergé localement est
+viable sans dépendre d'API IA cloud externes, ce qui est particulièrement pertinent
+dans un contexte de données sensibles de recherche.
+
+\section*{Perspectives et Travaux Futurs}
+
+Quatre améliorations concrètes sont proposées pour une évolution vers une version de
+production :
+
+\begin{enumerate}
+  \item \textbf{Persistance du suivi de progression :} remplacer les dictionnaires
+        \texttt{progress\_store} en mémoire par un magasin Redis ou une table journal
+        en base de données afin de survivre aux redémarrages du backend pendant les
+        opérations de provisionnement longues.
+  \item \textbf{Suite de tests automatisés :} implémenter des tests unitaires pour
+        la couche service (en simulant les appels de sous-processus Terraform et les
+        connexions SSH) et des tests d'intégration contre un projet HCS de staging.
+  \item \textbf{RBAC multi-tenant :} ajouter des rôles utilisateur (administrateur,
+        utilisateur standard) et des quotas de ressources par utilisateur appliqués
+        au niveau de la plateforme, indépendamment des quotas du projet HCS.
+  \item \textbf{Migration PostgreSQL et containerisation :} remplacer SQLite par
+        PostgreSQL et containeriser les trois services avec Docker Compose ou un chart
+        Helm Kubernetes, permettant la mise à l'échelle horizontale et le déploiement
+        multi-hôtes.
+\end{enumerate}
+
+\section*{Réflexion Finale}
+
+Construire une plateforme qui réduit l'écart entre un environnement cloud de production
+et des utilisateurs académiques non experts a nécessité de naviguer en permanence entre
+la conception de l'expérience utilisateur, l'ingénierie des systèmes distribués et
+les contraintes techniques spécifiques de l'infrastructure HCS. Ce stage a démontré
+que combler ces couches --- rendre les ressources cloud puissantes accessibles aux
+chercheurs qui souhaitent simplement exécuter leur code --- est à la fois
+techniquement exigeant et véritablement utile.

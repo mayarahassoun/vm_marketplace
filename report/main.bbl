@@ -1,0 +1,361 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{huawei2023annual}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=73357e23aeb3b109c15ae34167e15198}{%
+           family={{Huawei Technologies Co., Ltd.}},
+           familyi={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{fullhash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{fullhashraw}{73357e23aeb3b109c15ae34167e15198}
+      \strng{bibnamehash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{authorbibnamehash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{authornamehash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{authorfullhash}{73357e23aeb3b109c15ae34167e15198}
+      \strng{authorfullhashraw}{73357e23aeb3b109c15ae34167e15198}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://www.huawei.com/en/annual-report/2023}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{2023 Annual Report}
+      \field{year}{2024}
+    \endentry
+    \entry{mesrs_hcs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=01241b0c1f810f038232c5c4f9d761ba}{%
+           family={{Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{fullhash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{fullhashraw}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{bibnamehash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{authorbibnamehash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{authornamehash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{authorfullhash}{01241b0c1f810f038232c5c4f9d761ba}
+      \strng{authorfullhashraw}{01241b0c1f810f038232c5c4f9d761ba}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://mesrscloud.rnu.tn}}
+      \field{note}{Internal platform; Accessed: 2026-06-01}
+      \field{title}{{MESRS} Cloud Platform --- {Huawei Cloud Stack} for Academic Institutions}
+    \endentry
+    \entry{hcs_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=a1c2e9da612abcaee448d068b974f7dd}{%
+           family={{Huawei Cloud}},
+           familyi={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{fullhash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{fullhashraw}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{bibnamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorbibnamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authornamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorfullhash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorfullhashraw}{a1c2e9da612abcaee448d068b974f7dd}
+      \field{extraname}{1}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://support.huaweicloud.com/intl/en-us/hcs/index.html}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Huawei Cloud Stack Documentation}
+    \endentry
+    \entry{hcs_terraform_provider}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=a1c2e9da612abcaee448d068b974f7dd}{%
+           family={{Huawei Cloud}},
+           familyi={H\bibinitperiod}}}%
+      }
+      \strng{namehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{fullhash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{fullhashraw}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{bibnamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorbibnamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authornamehash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorfullhash}{a1c2e9da612abcaee448d068b974f7dd}
+      \strng{authorfullhashraw}{a1c2e9da612abcaee448d068b974f7dd}
+      \field{extraname}{2}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://registry.terraform.io/providers/huaweicloud/hcs/latest/docs}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Terraform Provider for Huawei Cloud Stack (\texttt{huaweicloud/hcs}), v2.4.0}
+    \endentry
+    \entry{horizon_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=bfe5958c161d33944ea5630d1995d2ad}{%
+           family={{OpenStack Foundation}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{fullhash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{fullhashraw}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{bibnamehash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{authorbibnamehash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{authornamehash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{authorfullhash}{bfe5958c161d33944ea5630d1995d2ad}
+      \strng{authorfullhashraw}{bfe5958c161d33944ea5630d1995d2ad}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://docs.openstack.org/horizon}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{OpenStack Horizon --- The {OpenStack} Dashboard}
+    \endentry
+    \entry{proxmox_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=1084f35a33bdcbc0ab83c1de6b0683f6}{%
+           family={{Proxmox Server Solutions GmbH}},
+           familyi={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{fullhash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{fullhashraw}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{bibnamehash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{authorbibnamehash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{authornamehash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{authorfullhash}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \strng{authorfullhashraw}{1084f35a33bdcbc0ab83c1de6b0683f6}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://pve.proxmox.com/pve-docs}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Proxmox {VE} Documentation}
+    \endentry
+    \entry{vmware_vcd}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=7da57f1962f18dcb73eba4178b672fed}{%
+           family={{VMware, Inc.}},
+           familyi={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{fullhash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{fullhashraw}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{bibnamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorbibnamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authornamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorfullhash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorfullhashraw}{7da57f1962f18dcb73eba4178b672fed}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://docs.vmware.com/en/VMware-Cloud-Director}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{{VMware Cloud Director} Documentation}
+    \endentry
+    \entry{aws_console}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=3eb2c1a57a8160029f036e3dcbf84bf1}{%
+           family={{Amazon Web Services}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{fullhash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{fullhashraw}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{bibnamehash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{authorbibnamehash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{authornamehash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{authorfullhash}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \strng{authorfullhashraw}{3eb2c1a57a8160029f036e3dcbf84bf1}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://aws.amazon.com/console}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{{AWS Management Console} --- Overview}
+    \endentry
+    \entry{nextjs_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=dc173d57136dbe619cbccee88ee6421c}{%
+           family={{Vercel}},
+           familyi={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{fullhash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{fullhashraw}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{bibnamehash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{authorbibnamehash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{authornamehash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{authorfullhash}{dc173d57136dbe619cbccee88ee6421c}
+      \strng{authorfullhashraw}{dc173d57136dbe619cbccee88ee6421c}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://nextjs.org/docs}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{{Next.js} Documentation, v14}
+    \endentry
+    \entry{tailwind_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=115eb058b42d5a622d39c9383748c476}{%
+           family={{Tailwind Labs}},
+           familyi={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{115eb058b42d5a622d39c9383748c476}
+      \strng{fullhash}{115eb058b42d5a622d39c9383748c476}
+      \strng{fullhashraw}{115eb058b42d5a622d39c9383748c476}
+      \strng{bibnamehash}{115eb058b42d5a622d39c9383748c476}
+      \strng{authorbibnamehash}{115eb058b42d5a622d39c9383748c476}
+      \strng{authornamehash}{115eb058b42d5a622d39c9383748c476}
+      \strng{authorfullhash}{115eb058b42d5a622d39c9383748c476}
+      \strng{authorfullhashraw}{115eb058b42d5a622d39c9383748c476}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://tailwindcss.com/docs}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Tailwind {CSS} Documentation}
+    \endentry
+    \entry{fastapi_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=f5305ee02dd2a5c6215b53401b4a10b0}{%
+           family={Ramírez},
+           familyi={R\bibinitperiod},
+           given={Sebastián},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{fullhash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{fullhashraw}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{bibnamehash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{authorbibnamehash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{authornamehash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{authorfullhash}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \strng{authorfullhashraw}{f5305ee02dd2a5c6215b53401b4a10b0}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://fastapi.tiangolo.com}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{{FastAPI} Documentation}
+    \endentry
+    \entry{ollama_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=c23e8db458397f37c8e8d98e94e55a18}{%
+           family={{Ollama}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{fullhash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{fullhashraw}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{bibnamehash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{authorbibnamehash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{authornamehash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{authorfullhash}{c23e8db458397f37c8e8d98e94e55a18}
+      \strng{authorfullhashraw}{c23e8db458397f37c8e8d98e94e55a18}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://ollama.com/docs}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Ollama --- Run Large Language Models Locally}
+    \endentry
+    \entry{llama31}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=ca43b8b2bdf82aa380c9fed8712d8db8}{%
+           family={{Meta AI}},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{fullhash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{fullhashraw}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{bibnamehash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{authorbibnamehash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{authornamehash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{authorfullhash}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \strng{authorfullhashraw}{ca43b8b2bdf82aa380c9fed8712d8db8}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://ai.meta.com/blog/meta-llama-3-1}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Llama 3.1 --- Open Foundation and Fine-Tuned Chat Models}
+      \field{year}{2024}
+    \endentry
+    \entry{paramiko_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=0476c0aed7c9ef253f4667d2675c134d}{%
+           family={{Paramiko Contributors}},
+           familyi={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{fullhash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{fullhashraw}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{bibnamehash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{authorbibnamehash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{authornamehash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{authorfullhash}{0476c0aed7c9ef253f4667d2675c134d}
+      \strng{authorfullhashraw}{0476c0aed7c9ef253f4667d2675c134d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://www.paramiko.org}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Paramiko Documentation}
+    \endentry
+    \entry{netdata_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=17308ba826dd139ef14bb921f115d530}{%
+           family={{Netdata Inc.}},
+           familyi={N\bibinitperiod}}}%
+      }
+      \strng{namehash}{17308ba826dd139ef14bb921f115d530}
+      \strng{fullhash}{17308ba826dd139ef14bb921f115d530}
+      \strng{fullhashraw}{17308ba826dd139ef14bb921f115d530}
+      \strng{bibnamehash}{17308ba826dd139ef14bb921f115d530}
+      \strng{authorbibnamehash}{17308ba826dd139ef14bb921f115d530}
+      \strng{authornamehash}{17308ba826dd139ef14bb921f115d530}
+      \strng{authorfullhash}{17308ba826dd139ef14bb921f115d530}
+      \strng{authorfullhashraw}{17308ba826dd139ef14bb921f115d530}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://learn.netdata.cloud}}
+      \field{note}{Accessed: 2026-06-01}
+      \field{title}{Netdata Documentation}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

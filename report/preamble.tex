@@ -1,0 +1,121 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+% ─── Fonts: Times New Roman equivalent ───────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage{tgtermes}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+
+% ─── Page layout ─────────────────────────────────────────────────────────────
+\usepackage[a4paper,margin=2.5cm,bindingoffset=0.5cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\setstretch{1.15}
+\usepackage{ragged2e}
+\justifying
+\setlength{\parindent}{0.5cm}
+\setlength{\parskip}{0pt}
+
+% ─── Headers and footers ─────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\nouppercase{\leftmark}}
+\fancyfoot[R]{\thepage\ /\ \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Chapter / section titles ─────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[block]
+  {\normalfont\Large\bfseries}
+  {\chaptername\ \thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{30pt}{20pt}
+
+% ─── Graphics and floats ─────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+\usepackage{subcaption}
+
+% ─── Tables ──────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+
+% ─── Colors and listings ─────────────────────────────────────────────────────
+\usepackage{xcolor}
+\definecolor{codeblue}{HTML}{0550AE}
+\definecolor{codegray}{HTML}{6E7781}
+\definecolor{lightgray}{HTML}{F6F8FA}
+\usepackage{listings}
+\lstset{
+  basicstyle=\small\ttfamily,
+  backgroundcolor=\color{lightgray},
+  frame=single,
+  rulecolor=\color{codegray},
+  breaklines=true,
+  keywordstyle=\color{codeblue}\bfseries,
+  commentstyle=\color{codegray}\itshape,
+  numbers=left,
+  numberstyle=\tiny\color{codegray},
+  xleftmargin=1em,
+  framexleftmargin=1em,
+}
+
+% ─── Diagrams ────────────────────────────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, calc, backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ─── Misc utilities ──────────────────────────────────────────────────────────
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\usepackage{footnote}
+\usepackage{microtype}
+\usepackage{pdfpages}
+\usepackage[absolute,overlay]{textpos}
+\setlength{\TPHorizModule}{1mm}
+\setlength{\TPVertModule}{1mm}
+
+% ─── Logo Huawei en TikZ ─────────────────────────────────────────────────────
+\newcommand{\HuaweiLogo}[1][3.5cm]{%
+\begin{tikzpicture}[scale=1.8]
+  \foreach \i in {0,1,...,7}{
+    \begin{scope}[rotate=\i*45]
+      \fill[red!85!black]
+        (0,0.12)
+        .. controls (0.20,0.32) and (0.26,0.62) .. (0,0.88)
+        .. controls (-0.08,0.62) and (-0.06,0.32) .. cycle;
+    \end{scope}
+  }
+  \node[below=2pt, font=\fontsize{8}{9}\selectfont\bfseries\sffamily,
+        text=black!70, anchor=north] at (0,0) {HUAWEI};
+\end{tikzpicture}%
+}
+
+% ─── Hyperlinks ──────────────────────────────────────────────────────────────
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=codeblue,
+            pdftitle={VM Marketplace --- PFE Report},
+            pdfauthor={Mayara Hassoun},
+            pdfsubject={End-of-Study Project, ESPRIT},
+            bookmarksnumbered=true]{hyperref}
+
+% ─── Bibliography ────────────────────────────────────────────────────────────
+\usepackage[backend=biber,style=ieee,sorting=none]{biblatex}
+\addbibresource{bibliography.bib}
+
+% ─── Placeholder figure helper ───────────────────────────────────────────────
+\newcommand{\screenshotplaceholder}[2][0.85]{%
+  \begin{center}
+    \fbox{\parbox{#1\linewidth}{\centering\vspace{1.5cm}%
+      \textit{[Screenshot: #2]}\vspace{1.5cm}}}
+  \end{center}
+}

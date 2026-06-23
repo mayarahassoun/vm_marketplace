@@ -1,0 +1,16 @@
+\babel@toc {french}{}\relax 
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Architecture générale de VM Marketplace}}{7}{figure.caption.14}%
+\contentsline {figure}{\numberline {1.2}{\ignorespaces Diagramme de Gantt --- planification du projet VM Marketplace ([TODO : ajuster les numéros de semaines selon la date de début réelle du stage])}}{8}{figure.caption.16}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Diagramme de cas d'utilisation global --- VM Marketplace}}{12}{figure.caption.18}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Modèle de données principal (entités ORM SQLAlchemy)}}{13}{figure.caption.19}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture de déploiement de VM Marketplace}}{15}{figure.caption.21}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Diagramme de séquence --- Authentification}}{19}{figure.caption.26}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Diagramme de séquence --- Provisionnement de VM}}{20}{figure.caption.27}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Flux de données de la recommandation IA}}{22}{figure.caption.32}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Architecture réseau du cluster Kubernetes sur HCS}}{25}{figure.caption.34}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }

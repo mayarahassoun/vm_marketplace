@@ -1,0 +1,259 @@
+\chapter{Tests et Validation}
+
+\section{Introduction}
+
+Ce chapitre rend compte de la validation de VM Marketplace au regard des objectifs
+définis dans l'introduction générale. Tous les tests ont été réalisés sur
+l'infrastructure HCS MESRS de production (\textit{mesrscloud.rnu.tn}, région
+\texttt{tn-global-1}). En l'absence de suite de tests automatisés, la validation
+suit un protocole de tests manuels structuré par module fonctionnel, avec le
+provisionnement cloud réel comme principale preuve de validation.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Environnement de Test}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Environnement de test}
+\label{tab:test_env}
+\begin{tabularx}{\linewidth}{lX}
+\toprule
+\textbf{Composant} & \textbf{Configuration} \\
+\midrule
+Région HCS & \texttt{tn-global-1}, projet « Marketplace » \\
+Réseau & VPC avec sous-réseau \texttt{47a8cd69-519b-45fe-845b-23704f01ace6} \\
+Images OS testées & Ubuntu 22.04 LTS (UUID HCS) \\
+Flavor maître & \texttt{c7n.xlarge.4} (4 vCPU, 16 Go RAM) \\
+Flavor worker & \texttt{c7n.xlarge.4} (4 vCPU, 16 Go RAM) \\
+Disque système & 50 Go SSD \\
+Version K8s provisionnée & 1.29.15 \\
+Navigateur de test & Chromium / Firefox \\
+Hôte backend & localhost:8000 (Python 3.11, FastAPI) \\
+Hôte frontend & localhost:3000 (Next.js 14) \\
+Moteur IA & localhost:8001, Ollama llama3.1 (8B) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests d'Authentification}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests d'authentification}
+\label{tab:auth_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-A01 & Inscription avec e-mail et mot de passe valides & 201, utilisateur stocké en BD & \cmark \\
+TC-A02 & Inscription avec e-mail déjà existant & Erreur 400 retournée & \cmark \\
+TC-A03 & Connexion avec identifiants valides & 200, jeton JWT retourné & \cmark \\
+TC-A04 & Connexion avec mauvais mot de passe & 401 Non autorisé & \cmark \\
+TC-A05 & Accès à un endpoint protégé sans jeton & 401 Non autorisé & \cmark \\
+TC-A06 & Accès à un endpoint protégé avec jeton expiré & 401 Non autorisé & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests de Provisionnement de VM}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests de provisionnement de VM}
+\label{tab:vm_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-V01 & Compléter l'assistant avec config valide + paiement & Session ID retournée & \cmark \\
+TC-V02 & Le flux de progression SSE s'ouvre et envoie les étapes & 6 étapes diffusées & \cmark \\
+TC-V03 & La VM apparaît dans la console HCS après apply & Instance ECS en état Running & \cmark \\
+TC-V04 & IP publique de la VM accessible via SSH & Connexion root par clé SSH réussie & \cmark \\
+TC-V05 & E-mail de confirmation reçu & E-mail avec détails VM livré & \cmark \\
+TC-V06 & Tableau de bord Netdata accessible sur port 19999 & Interface Netdata chargée avec métriques & \cmark \\
+TC-V07 & La VM apparaît dans le tableau de bord & Carte VM visible avec IP correcte & \cmark \\
+TC-V08 & Supprimer une VM depuis le tableau de bord & \texttt{terraform destroy} exécuté ; VM retirée de la BD & \cmark \\
+TC-V09 & Carte Stripe invalide rejetée & Erreur 400, aucun provisionnement lancé & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\screenshotplaceholder{Console HCS ECS affichant une instance VM provisionnée en état Running}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests de Recommandation IA}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests de recommandation IA}
+\label{tab:ai_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-IA01 & Décrire une charge de travail d'entraînement ML & Flavor haut niveau recommandé & \cmark \\
+TC-IA02 & Décrire un serveur web statique & Flavor bas niveau (1--2 vCPU) & \cmark \\
+TC-IA03 & Description vague (ex. : « quelque chose de rapide ») & Score de confiance faible ($<0,5$) & \cmark \\
+TC-IA04 & Moteur IA hors ligne & Erreur 503 retournée par le backend & \cmark \\
+TC-IA05 & Recommandation pré-remplit l'assistant & Assistant ouvert avec les specs correctes & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\screenshotplaceholder{Résultat de recommandation IA --- analyse de charge de travail et flavor recommandé pour un entraînement de machine learning}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests du Terminal SSH}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests du terminal SSH}
+\label{tab:ssh_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-S01 & Ouvrir le terminal SSH pour une VM en cours d'exécution & xterm.js connecté, invite shell affichée & \cmark \\
+TC-S02 & Exécuter des commandes (ls, top, apt) dans le terminal & Commandes exécutées, sortie rendue & \cmark \\
+TC-S03 & Terminal pour VM sans IP publique & Erreur d'affichée gracieusement & \cmark \\
+TC-S04 & Fermer l'onglet du navigateur & WebSocket et canal SSH fermés côté serveur & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\screenshotplaceholder{Terminal SSH dans le navigateur affichant une session shell root interactive sur une VM HCS}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests du Cluster Kubernetes}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests du cluster Kubernetes}
+\label{tab:k8s_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-K01 & Compléter l'assistant cluster + paiement & Session ID retournée & \cmark \\
+TC-K02 & Flux de progression SSE --- 6 étapes & Toutes les étapes atteignent l'état « complet » & \cmark \\
+TC-K03 & Instance ECS maître créée sur HCS & ECS en état Running avec EIP & \cmark \\
+TC-K04 & Instance ECS worker créée (sans EIP) & ECS en état Running, IP privée uniquement & \cmark \\
+TC-K05 & Le worker peut joindre apt via le NAT maître & Paquets K8s installés sur le worker & \cmark \\
+TC-K06 & \texttt{kubectl get nodes} affiche les deux nœuds Ready & STATUS : Ready pour tous les nœuds & \cmark \\
+TC-K07 & \texttt{kubectl cluster-info} affiche l'URL du serveur API & Serveur API à l'EIP maître:6443 & \cmark \\
+TC-K08 & Déployer nginx et passer à 3 réplicas & Tous les pods Running, service accessible & \cmark \\
+TC-K09 & Télécharger le kubeconfig depuis le tableau de bord & Fichier YAML valide ; \texttt{kubectl} se connecte & \cmark \\
+TC-K10 & Supprimer le cluster depuis le tableau de bord & terraform destroy terminé ; entrée BD supprimée & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Sortie de validation kubectl.}
+
+La sortie suivante a été obtenue après téléchargement du kubeconfig et exécution de
+\texttt{kubectl} sur le cluster provisionné :
+
+\begin{lstlisting}[language=bash,
+  caption={Sortie de kubectl get nodes sur le cluster provisionné},
+  label={lst:kubectl_nodes}]
+$ kubectl get nodes -o wide
+NAME                    STATUS   ROLES          AGE   VERSION    INTERNAL-IP
+k8s-cluster-master      Ready    control-plane  12m   v1.29.15   192.168.129.237
+k8s-cluster-worker-1    Ready    <none>         9m    v1.29.15   192.168.129.112
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,
+  caption={Sortie de kubectl cluster-info},
+  label={lst:kubectl_info}]
+$ kubectl cluster-info
+Kubernetes control plane is running at https://193.95.30.249:6443
+CoreDNS is running at https://193.95.30.249:6443/api/v1/namespaces/...
+\end{lstlisting}
+
+\screenshotplaceholder{kubectl get nodes --- les deux nœuds en statut Ready avec la version v1.29.15}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Évaluation des Objectifs}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Le tableau~\ref{tab:objectives} évalue chacun des cinq objectifs initiaux au regard
+des preuves de validation.
+
+\begin{table}[H]
+\centering
+\caption{Évaluation des objectifs}
+\label{tab:objectives}
+\begin{tabularx}{\linewidth}{lXl}
+\toprule
+\textbf{Objectif} & \textbf{Preuve} & \textbf{Statut} \\
+\midrule
+Application web full-stack avec assistant VM, Stripe et Terraform sur HCS
+  & TC-V01 à TC-V08 validés ; VMs réelles provisionnées sur HCS de production & \cmark Atteint \\
+Moteur de recommandation IA (Llama~3.1, local)
+  & TC-IA01 à TC-IA05 validés ; recommandations générées en moins de 30 s & \cmark Atteint \\
+Terminal SSH navigateur et supervision Netdata
+  & TC-S01 à TC-S04 validés ; Netdata installé et accessible & \cmark Atteint \\
+Provisionnement cluster K8s avec réseau pour workers privés
+  & TC-K01 à TC-K10 validés ; cluster 2 nœuds Ready sur HCS & \cmark Atteint \\
+Validation bout en bout sur HCS de production
+  & Tous les tests réalisés sur \textit{mesrscloud.rnu.tn} & \cmark Atteint \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Limites Identifiées}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Les limites suivantes ont été identifiées et documentées dans le cadre d'une
+évaluation honnête :
+
+\begin{enumerate}
+  \item \textbf{Suivi de progression en mémoire.} Les dictionnaires
+        \texttt{progress\_store} et \texttt{cluster\_progress} sont stockés en mémoire
+        de processus. Un redémarrage du backend pendant le provisionnement (qui dure
+        5 à 10 minutes) orphelinise le flux de progression ; la VM ou le cluster sera
+        tout de même créé sur HCS mais le frontend n'affichera plus de mises à jour.
+
+  \item \textbf{Absence de suite de tests automatisés.} Le projet ne dispose pas de
+        tests unitaires, d'intégration ni de pipeline CI. Toute la validation a été
+        effectuée manuellement sur l'environnement HCS de production.
+
+  \item \textbf{SQLite pour la persistance.} SQLite est adapté à un déploiement de
+        développement à instance unique, mais ne supporte pas les écritures simultanées
+        de plusieurs workers backend. Une migration vers PostgreSQL serait nécessaire
+        pour une mise à l'échelle en production.
+
+  \item \textbf{URLs localhost codées en dur.} Les variables \texttt{NEXT\_PUBLIC\_API\_URL}
+        et les URLs du moteur IA sont codées en dur vers localhost. Les déploiements
+        multi-hôtes ou containerisés nécessitent une configuration par variable
+        d'environnement.
+
+  \item \textbf{Absence de contrôle d'accès par rôle.} Il n'existe pas de RBAC
+        (contrôle d'accès basé sur les rôles) ni de gestion de quota par utilisateur
+        au niveau de la plateforme. Tout utilisateur authentifié peut provisionner
+        autant de ressources que le quota du projet HCS le permet.
+
+  \item \textbf{Sécurité du kubeconfig.} Le kubeconfig stocké en base de données
+        accorde un accès cluster-admin. Il est transmis via HTTPS mais stocké en clair
+        dans la base de données SQLite.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Les cinq objectifs initiaux ont tous été atteints et validés sur l'infrastructure HCS
+MESRS de production. La plateforme provisionne avec succès aussi bien des VM
+individuelles que des clusters Kubernetes multi-nœuds, offre une recommandation
+assistée par IA, et propose un accès SSH intégré ainsi qu'une supervision automatisée.
+Les limites identifiées sont bien comprises et constituent une feuille de route claire
+pour une évolution vers une version de production.
