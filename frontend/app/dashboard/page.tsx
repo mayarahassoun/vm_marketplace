@@ -11,7 +11,7 @@ import {
   clearAuthToken, getAuthToken,
   listVMs, deleteVM as deleteVMApi,
   listClusters, deleteCluster as deleteClusterApi,
-  downloadKubeconfig,
+  downloadKubeconfig, downloadSshKey,
   type ClusterSummary,
 } from "@/lib/api"
 import SSHPasswordModal from "@/components/SSHPasswordModal"
@@ -110,6 +110,21 @@ export default function DashboardPage() {
       const a = document.createElement("a")
       a.href = url
       a.download = "kubeconfig.yaml"
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { /* ignore */ }
+  }
+
+  async function handleDownloadSshKey(clusterId: number) {
+    const token = getAuthToken()
+    if (!token) return
+    try {
+      const key = await downloadSshKey(token, clusterId)
+      const blob = new Blob([key], { type: "application/octet-stream" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "id_rsa_cluster"
       a.click()
       URL.revokeObjectURL(url)
     } catch { /* ignore */ }
@@ -355,6 +370,32 @@ export default function DashboardPage() {
                     >
                       <CreditCard className="h-4 w-4" />
                       kubeconfig
+                    </button>
+                    <button
+                      disabled={!c.has_ssh_key}
+                      onClick={() => handleDownloadSshKey(c.id)}
+                      title={c.has_ssh_key ? "Download SSH private key" : "No SSH key stored"}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                        c.has_ssh_key
+                          ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                          : "cursor-not-allowed border-slate-100 text-slate-300"
+                      }`}
+                    >
+                      <Terminal className="h-4 w-4" />
+                      id_rsa
+                    </button>
+                    <button
+                      disabled={c.status !== "running" || !c.master_public_ip}
+                      onClick={() => router.push(`/cluster-ssh?id=${c.id}&name=${encodeURIComponent(c.name)}&ip=${c.master_public_ip}${!c.has_ssh_key ? "&needsPassword=true" : ""}`)}
+                      title={c.status === "running" ? "SSH into master node" : "Cluster not running"}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                        c.status === "running" && c.master_public_ip
+                          ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                          : "cursor-not-allowed border-slate-100 text-slate-300"
+                      }`}
+                    >
+                      <Terminal className="h-4 w-4" />
+                      SSH
                     </button>
                     <button
                       onClick={() => { setClusterToDelete(c.id); setClusterDeleteError(null) }}

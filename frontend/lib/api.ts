@@ -148,6 +148,7 @@
     image_id: string
     system_disk_size: number
     has_kubeconfig: boolean
+    has_ssh_key: boolean
     created_at: string
   }
 
@@ -176,4 +177,12 @@
     if (!res.ok) throw new Error("Kubeconfig not available")
     const { kubeconfig } = await res.json()
     return kubeconfig
+  }
+
+  export async function downloadSshKey(token: string, clusterId: number): Promise<string> {
+    const res = await fetch(`${API_URL}/clusters/${clusterId}/ssh-key`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error("SSH key not available")
+    return res.text()
   }

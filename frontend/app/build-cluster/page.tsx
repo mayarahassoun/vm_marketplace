@@ -409,6 +409,16 @@ export default function BuildClusterPage() {
   const [az, setAz] = useState("tn-global-1a")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const passwordTypes = password.length > 0 ? [
+    /[a-z]/.test(password),
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^a-zA-Z0-9]/.test(password),
+  ].filter(Boolean).length : 0
+  const passwordLenOk = password.length >= 8 && password.length <= 26
+  const passwordComplexOk = passwordTypes >= 3
+  const passwordValid = passwordLenOk && passwordComplexOk
+  const passwordError = password.length > 0 && !passwordValid
 
   const masterFlavor = MASTER_FLAVORS.find((f) => f.id === masterFlavorId) ?? MASTER_FLAVORS[0]
   const workerFlavor = WORKER_FLAVORS.find((f) => f.id === workerFlavorId) ?? WORKER_FLAVORS[1]
@@ -723,8 +733,12 @@ export default function BuildClusterPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min. 8 chars, uppercase + digit + special char"
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    placeholder="Entre 8 et 26 caractères"
+                    className={`w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-4 ${
+                      passwordError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                        : "border-slate-200 focus:border-slate-400 focus:ring-slate-100"
+                    }`}
                   />
                   <button
                     type="button"
@@ -734,9 +748,24 @@ export default function BuildClusterPage() {
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
-                  Used to SSH into all nodes during Kubernetes bootstrap.
-                </p>
+                {password.length > 0 && !passwordLenOk && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Entre 8 et 26 caractères ({password.length} actuellement).
+                  </p>
+                )}
+                {password.length > 0 && passwordLenOk && !passwordComplexOk && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Doit contenir au moins 3 types parmi : minuscules, majuscules, chiffres, caractères spéciaux. ({passwordTypes}/3)
+                  </p>
+                )}
+                {passwordValid && (
+                  <p className="mt-1 text-xs text-green-600">✓ Mot de passe valide</p>
+                )}
+                {password.length === 0 && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    8–26 caractères, 3 types minimum (ex : <code>Admin@2026</code>)
+                  </p>
+                )}
               </div>
             </div>
 
@@ -749,7 +778,7 @@ export default function BuildClusterPage() {
               </button>
               <button
                 onClick={() => setStep(4)}
-                disabled={!subnetId.trim() || !securityGroupId.trim() || !password.trim()}
+                disabled={!subnetId.trim() || !securityGroupId.trim() || !passwordValid}
                 className="inline-flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
               >
                 Review <ArrowRight className="h-4 w-4" />

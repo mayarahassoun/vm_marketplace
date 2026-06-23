@@ -31,6 +31,9 @@ class Cluster(Base):
     # Full kubeconfig YAML to give to the user
     kubeconfig = Column(Text, nullable=True)
 
+    # PEM-encoded RSA private key used to SSH into the cluster nodes
+    ssh_private_key = Column(Text, nullable=True)
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

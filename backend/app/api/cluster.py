@@ -1,12 +1,14 @@
 import asyncio
+import io
 import json
 import os
 import threading
 import uuid
 
+import paramiko
 import resend
 import stripe
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -109,6 +111,11 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         ssh_key            = tf_result["ssh_key"]
         password           = payload.cluster_data["administrator_password"]
 
+        # Serialize the RSA key to PEM so we can store it and reuse it for SSH
+        _pem_buf = io.StringIO()
+        ssh_key.write_private_key(_pem_buf)
+        ssh_private_key_pem = _pem_buf.getvalue()
+
         # ── Save cluster record (status=creating) ──────────────────────────
         cluster = Cluster(
             user_id=user_id,
@@ -125,6 +132,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
             master_public_ip=master_public_ip,
             master_private_ip=master_private_ip,
             worker_public_ips=json.dumps(worker_private_ips),
+            ssh_private_key=ssh_private_key_pem,
         )
         db.add(cluster)
         db.commit()
@@ -253,6 +261,7 @@ def list_clusters(
             "image_id": c.image_id,
             "system_disk_size": c.system_disk_size,
             "has_kubeconfig": bool(c.kubeconfig),
+            "has_ssh_key": bool(c.ssh_private_key),
             "created_at": str(c.created_at),
         }
         for c in clusters
@@ -309,3 +318,115 @@ def delete_cluster(
     db.delete(cluster)
     db.commit()
     return {"message": "Cluster deleted successfully"}
+
+
+# ─── Download SSH private key ─────────────────────────────────────────────────
+
+@router.get("/{cluster_id}/ssh-key")
+def get_ssh_key(
+    cluster_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from fastapi.responses import Response
+    cluster = (
+        db.query(Cluster)
+        .filter(Cluster.id == cluster_id, Cluster.user_id == current_user.id)
+        .first()
+    )
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found")
+    if not cluster.ssh_private_key:
+        raise HTTPException(status_code=404, detail="No SSH key stored for this cluster")
+    return Response(
+        content=cluster.ssh_private_key,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename=id_rsa_{cluster.name}"},
+    )
+
+
+# ─── SSH terminal (WebSocket, key-based auth) ─────────────────────────────────
+
+@router.websocket("/{cluster_id}/ssh-ws")
+async def cluster_ssh_terminal(cluster_id: int, websocket: WebSocket):
+    await websocket.accept()
+
+    db = SessionLocal()
+    try:
+        cluster = db.query(Cluster).filter(Cluster.id == cluster_id).first()
+        if not cluster or not cluster.master_public_ip:
+            await websocket.send_text("\r\n❌ Cluster not found or has no public IP.\r\n")
+            await websocket.close()
+            return
+
+        host = cluster.master_public_ip
+        pkey = None
+        password = None
+
+        if cluster.ssh_private_key:
+            pkey = paramiko.RSAKey.from_private_key(io.StringIO(cluster.ssh_private_key))
+        else:
+            # No stored key — expect the first message to carry {"password": "..."}
+            await websocket.send_text("\r\n🔑 No SSH key stored. Waiting for password...\r\n")
+            try:
+                first_msg = await asyncio.wait_for(websocket.receive_json(), timeout=30)
+                password = first_msg.get("password")
+                if not password:
+                    await websocket.send_text("\r\n❌ No password provided.\r\n")
+                    await websocket.close()
+                    return
+            except asyncio.TimeoutError:
+                await websocket.send_text("\r\n❌ Timed out waiting for password.\r\n")
+                await websocket.close()
+                return
+    finally:
+        db.close()
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    try:
+        if pkey:
+            ssh.connect(hostname=host, username="root", pkey=pkey, timeout=15,
+                        allow_agent=False, look_for_keys=False)
+        else:
+            ssh.connect(hostname=host, username="root", password=password, timeout=15)
+
+        channel = ssh.invoke_shell(term="xterm", width=220, height=50)
+        channel.setblocking(False)
+
+        await websocket.send_text(f"\r\n✅ Connected to cluster master {host}\r\n\r\n")
+
+        async def read_ssh():
+            while True:
+                await asyncio.sleep(0.05)
+                try:
+                    if channel.recv_ready():
+                        data = channel.recv(4096).decode("utf-8", errors="replace")
+                        await websocket.send_text(data)
+                    if channel.exit_status_ready():
+                        await websocket.send_text("\r\n🔌 Connection closed.\r\n")
+                        break
+                except Exception:
+                    break
+
+        async def read_ws():
+            while True:
+                try:
+                    data = await websocket.receive_text()
+                    channel.send(data)
+                except WebSocketDisconnect:
+                    break
+                except Exception:
+                    break
+
+        await asyncio.gather(read_ssh(), read_ws())
+
+    except Exception as e:
+        await websocket.send_text(f"\r\n❌ SSH Error: {str(e)}\r\n")
+    finally:
+        ssh.close()
+        try:
+            await websocket.close()
+        except Exception:
+            pass
