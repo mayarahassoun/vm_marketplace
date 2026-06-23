@@ -311,10 +311,18 @@ def delete_cluster(
 
     try:
         from app.services.cluster_service import destroy_terraform_cluster
-        # Use the unique state dir stored at creation time; fall back to the
-        # cluster name for records created before this column was added.
+        from pathlib import Path
+        import os
+
         state_dir = cluster.terraform_state_dir or cluster.name
-        destroy_terraform_cluster(state_dir)
+        states_root = Path(os.getenv(
+            "TERRAFORM_CLUSTER_STATES_DIR",
+            str(Path(__file__).resolve().parents[3] / "terraform_cluster_states"),
+        ))
+        if (states_root / state_dir).exists():
+            destroy_terraform_cluster(state_dir)
+        # If the state dir is gone, the cloud resources are already deleted —
+        # just remove the DB record without running terraform destroy.
     except Exception as exc:
         cluster.status = "error"
         db.commit()
