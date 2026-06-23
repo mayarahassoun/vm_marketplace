@@ -34,6 +34,11 @@ class Cluster(Base):
     # PEM-encoded RSA private key used to SSH into the cluster nodes
     ssh_private_key = Column(Text, nullable=True)
 
+    # Name of the terraform_cluster_states/<dir> used for this cluster.
+    # Always unique — decoupled from the user-visible `name` field so two
+    # clusters with the same name don't share a state directory.
+    terraform_state_dir = Column(String(255), nullable=True)
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

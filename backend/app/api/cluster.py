@@ -109,6 +109,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         master_private_ip  = tf_result["master_private_ip"]
         worker_private_ips = tf_result["worker_private_ips"]
         ssh_key            = tf_result["ssh_key"]
+        state_dir_name     = tf_result["state_dir_name"]
         password           = payload.cluster_data["administrator_password"]
 
         # Serialize the RSA key to PEM so we can store it and reuse it for SSH
@@ -133,6 +134,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
             master_private_ip=master_private_ip,
             worker_public_ips=json.dumps(worker_private_ips),
             ssh_private_key=ssh_private_key_pem,
+            terraform_state_dir=state_dir_name,
         )
         db.add(cluster)
         db.commit()
@@ -309,7 +311,10 @@ def delete_cluster(
 
     try:
         from app.services.cluster_service import destroy_terraform_cluster
-        destroy_terraform_cluster(cluster.name)
+        # Use the unique state dir stored at creation time; fall back to the
+        # cluster name for records created before this column was added.
+        state_dir = cluster.terraform_state_dir or cluster.name
+        destroy_terraform_cluster(state_dir)
     except Exception as exc:
         cluster.status = "error"
         db.commit()

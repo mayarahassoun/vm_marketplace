@@ -393,7 +393,9 @@ export default function BuildClusterPage() {
   const [sessionId, setSessionId] = useState<string | null>(null)
 
   // Step 1
-  const [clusterName, setClusterName] = useState("k8s-cluster")
+  const [clusterName, setClusterName] = useState(
+    () => `k8s-cluster-${Math.random().toString(36).slice(2, 7)}`
+  )
   const [profile, setProfile] = useState(PROFILES[0])
   const [workerCount, setWorkerCount] = useState(2)
 

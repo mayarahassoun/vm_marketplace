@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 import paramiko
@@ -154,7 +155,10 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
         raise FileNotFoundError(f"Terraform cluster template not found: {TERRAFORM_CLUSTER_SOURCE}")
 
     cluster_name = cluster_data["cluster_name"]
-    working_dir = TERRAFORM_CLUSTER_STATES / cluster_name
+    # Use a unique state directory so two clusters with the same user-visible
+    # name never share Terraform state and accidentally destroy each other's nodes.
+    state_dir_name = f"{cluster_name}-{uuid.uuid4().hex[:8]}"
+    working_dir = TERRAFORM_CLUSTER_STATES / state_dir_name
     working_dir.mkdir(parents=True, exist_ok=True)
 
     for tf_file in TERRAFORM_CLUSTER_SOURCE.glob("*.tf"):
@@ -218,13 +222,14 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
         "master_private_ip": _val("master_private_ip"),
         "worker_private_ips": _val("worker_private_ips") or [],
         "ssh_key": ssh_key,
+        "state_dir_name": state_dir_name,
     }
 
 
-def destroy_terraform_cluster(cluster_name: str) -> None:
-    working_dir = TERRAFORM_CLUSTER_STATES / cluster_name
+def destroy_terraform_cluster(state_dir: str) -> None:
+    working_dir = TERRAFORM_CLUSTER_STATES / state_dir
     if not working_dir.exists():
-        raise FileNotFoundError(f"Terraform cluster state not found: {cluster_name}")
+        raise FileNotFoundError(f"Terraform cluster state not found: {state_dir}")
 
     result = subprocess.run(
         ["terraform", "destroy", "-auto-approve"],

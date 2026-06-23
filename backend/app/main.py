@@ -18,6 +18,18 @@ from app.models import cluster  # noqa: F401 – ensures Cluster table is create
 
 Base.metadata.create_all(bind=engine)
 
+# Add terraform_state_dir column if it was missing from an older DB schema
+with engine.connect() as _conn:
+    try:
+        _conn.execute(
+            __import__("sqlalchemy").text(
+                "ALTER TABLE clusters ADD COLUMN terraform_state_dir VARCHAR(255)"
+            )
+        )
+        _conn.commit()
+    except Exception:
+        pass  # Column already exists — safe to ignore
+
 app = FastAPI()
 
 app.add_middleware(
