@@ -377,6 +377,8 @@ function Header() {
         <div className="hidden items-center gap-10 text-sm font-medium text-slate-700 md:flex">
           <Link href="/marketplace" className="hover:text-slate-900">Marketplace</Link>
           <Link href="/build-vm/instance" className="hover:text-slate-900">Build VM</Link>
+          <Link href="/build-cluster" className="text-slate-900 underline underline-offset-4 decoration-2">Clusters</Link>
+          <Link href="/ai-recommendation" className="hover:text-slate-900">AI Recommendation</Link>
           <Link href="/dashboard" className="hover:text-slate-900">Dashboard</Link>
         </div>
         <div className="h-8 w-8 rounded-full bg-slate-200" />
