@@ -135,6 +135,7 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
             worker_public_ips=json.dumps(worker_private_ips),
             ssh_private_key=ssh_private_key_pem,
             terraform_state_dir=state_dir_name,
+            enable_self_healing=payload.cluster_data.get("enable_self_healing", False),
         )
         db.add(cluster)
         db.commit()
@@ -162,6 +163,11 @@ def _create_cluster_background(session_id: str, payload: ClusterPayRequest, user
         cluster.status = "running"
         cluster.kubeconfig = kubeconfig
         db.commit()
+
+        # ── Register with self-healing hub if requested ──────────────────────
+        if cluster.enable_self_healing:
+            from app.services.self_healing_service import register_spoke_with_hub
+            register_spoke_with_hub(cluster, ssh_key, db)
 
         # Send confirmation email
         try:
@@ -264,6 +270,8 @@ def list_clusters(
             "system_disk_size": c.system_disk_size,
             "has_kubeconfig": bool(c.kubeconfig),
             "has_ssh_key": bool(c.ssh_private_key),
+            "enable_self_healing": c.enable_self_healing,
+            "self_healing_status": c.self_healing_status,
             "created_at": str(c.created_at),
         }
         for c in clusters

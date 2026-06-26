@@ -17,8 +17,9 @@ architecture à trois services --- un frontend Next.js, un backend FastAPI et un
 d'inférence IA distinct --- qui intègre le paiement Stripe, le provisionnement
 d'infrastructure IaC via Terraform sur HCS, la diffusion SSE pour le suivi en temps
 réel, des recommandations de VM assistées par IA via un modèle Llama~3.1 hébergé
-localement, un accès SSH dans le navigateur, la supervision Netdata et un gestionnaire
-complet du cycle de vie des clusters Kubernetes.
+localement, un accès SSH dans le navigateur, la supervision Netdata, un gestionnaire
+complet du cycle de vie des clusters k3s, un contrôleur d'autoguérison hub-spoke et
+des outils de réconciliation entre la base de données et l'état Terraform cloud.
 
 \section*{Principaux Résultats}
 
@@ -26,12 +27,19 @@ complet du cycle de vie des clusters Kubernetes.
   \item Le provisionnement bout en bout de VM sur l'environnement HCS de production
         a été validé, avec des VM atteignant l'état \texttt{Running} et la supervision
         Netdata installée automatiquement via SSH.
-  \item Un cluster Kubernetes à deux nœuds (K8s v1.29.15) a été provisionné avec
-        succès, les deux nœuds atteignant l'état \texttt{Ready}. L'architecture réseau
+  \item Un cluster k3s à deux nœuds (v1.31.4+k3s1) a été provisionné avec succès,
+        les deux nœuds atteignant l'état \texttt{Ready}. L'architecture réseau
         maître-comme-passerelle-NAT --- combinant \texttt{source\_dest\_check=false}
         au niveau Terraform avec des règles \texttt{iptables} MASQUERADE Linux ---
         a résolu la contrainte de quota EIP sans nécessiter de ressources cloud
-        supplémentaires.
+        supplémentaires. Le choix de k3s a simplifié l'installation à une seule
+        commande par nœud, supprimant les dépendances apt problématiques dans un
+        réseau contraint.
+  \item Le contrôleur d'autoguérison hub-spoke a été validé : l'enregistrement du
+        spoke auprès du hub s'effectue automatiquement après provisionnement, avec
+        propagation du statut en base de données.
+  \item Les outils de synchronisation et d'import ont résolu la divergence entre
+        l'état Terraform réel et les enregistrements de la base de données.
   \item Le moteur de recommandation IA, fonctionnant entièrement sur une instance
         Ollama locale, a correctement mappé des descriptions textuelles de charges de
         travail vers des recommandations de flavor HCS avec score de confiance.
@@ -63,8 +71,9 @@ Ce projet m'a permis de construire et de consolider les compétences suivantes :
   \item \textbf{Infrastructure cloud :} gestion des ressources Huawei Cloud Stack,
         Terraform IaC, configuration réseau VPC, gestion des EIP et configuration
         cloud-init.
-  \item \textbf{Administration Kubernetes :} initialisation de cluster avec kubeadm,
-        déploiement du CNI Flannel, opérations kubectl et gestion du kubeconfig.
+  \item \textbf{Administration Kubernetes :} provisionnement de clusters k3s,
+        réseau Flannel intégré, opérations kubectl, gestion du kubeconfig,
+        modèle hub-spoke pour l'autoguérison.
   \item \textbf{Développement backend :} API REST FastAPI, Server-Sent Events,
         authentification JWT, gestion de threads en arrière-plan, automatisation SSH
         Paramiko.

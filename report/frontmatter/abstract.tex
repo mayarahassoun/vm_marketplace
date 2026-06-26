@@ -14,52 +14,28 @@ Technologies Tunisie. La plateforme permet aux utilisateurs authentifiés de
 configurer, payer et provisionner des machines virtuelles et des clusters Kubernetes
 directement sur l'infrastructure HCS via une interface web intuitive. Ses
 fonctionnalités clés comprennent : un assistant de configuration de VM en plusieurs
-étapes avec suivi en temps réel du provisionnement via Server-Sent Events, un moteur
-de recommandation IA basé sur le modèle de langage Llama~3.1, un terminal SSH dans le
-navigateur, une installation automatisée de Netdata pour la supervision, et un
-gestionnaire complet du cycle de vie des clusters Kubernetes avec téléchargement du
-kubeconfig.
+étapes avec suivi en temps réel via Server-Sent Events, un moteur de recommandation
+IA basé sur le modèle de langage Llama~3.1, un terminal SSH dans le navigateur,
+une installation automatisée de Netdata pour la supervision, un gestionnaire complet
+du cycle de vie des clusters k3s, un contrôleur d'autoguérison hub-spoke et des outils
+de synchronisation entre la base de données et l'état Terraform cloud.
 
 L'architecture repose sur trois services indépendants : un frontend Next.js, un backend
 FastAPI et un moteur d'inférence IA distinct. Le provisionnement d'infrastructure est
-géré par Terraform avec le fournisseur \texttt{huaweicloud/hcs}, et les clusters
-Kubernetes sont initialisés via kubeadm avec le CNI Flannel. Un schéma réseau de type
-\og{}maître-comme-passerelle-NAT\fg{} --- combinant \texttt{source\_dest\_check=false}
-au niveau de l'hyperviseur avec le masquage IP Linux --- a été conçu et validé afin de
-fournir aux nœuds workers un accès internet malgré les contraintes de quota d'EIP
-de l'environnement HCS partagé.
+géré par Terraform avec le fournisseur \texttt{huaweicloud/hcs}. Les clusters
+Kubernetes sont initialisés avec k3s (distribution légère de Rancher Labs). Un schéma
+réseau de type \og{}maître-comme-passerelle-NAT\fg{} --- combinant
+\texttt{source\_dest\_check=false} au niveau de l'hyperviseur avec le masquage IP Linux
+--- a été conçu et validé afin de fournir aux nœuds workers un accès internet malgré
+les contraintes de quota d'EIP de l'environnement HCS partagé.
 
 La validation sur l'infrastructure HCS de production a confirmé le provisionnement
-complet de machines virtuelles et d'un cluster à deux nœuds sous Kubernetes v1.29.15,
+complet de machines virtuelles et d'un cluster à deux nœuds sous k3s v1.31.4+k3s1,
 avec les deux nœuds en statut \texttt{Ready}.
 
 \bigskip
 \noindent\textbf{Mots-clés :} Cloud computing, Huawei Cloud Stack, Machines virtuelles,
-Kubernetes, Infrastructure as Code, Terraform, Recommandation IA, FastAPI, Next.js,
+Kubernetes, k3s, Infrastructure as Code, Terraform, Recommandation IA, FastAPI, Next.js,
 Portail libre-service.
-
-\bigskip
-\hrule
-\bigskip
-
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
-
-Cloud computing adoption in Tunisian academic institutions has been hindered by the
-absence of self-service portals for the national Huawei Cloud Stack (HCS) infrastructure
-managed by MESRS. This project presents \textbf{VM Marketplace}, a full-stack
-self-service cloud management platform developed during a six-month internship at Huawei
-Technologies Tunisia. The platform enables authenticated users to configure, pay for,
-and provision virtual machines and Kubernetes clusters on HCS through an intuitive web
-interface. Key features include a multi-step VM wizard with real-time Server-Sent Events
-progress streaming, an AI recommendation engine based on Llama 3.1, browser-based SSH
-terminal access, automated Netdata monitoring, and a full Kubernetes cluster lifecycle
-manager with kubeconfig download. Validation on the production HCS infrastructure
-confirmed successful provisioning of a two-node Kubernetes cluster running
-Kubernetes v1.29.15 with both nodes in \texttt{Ready} status.
-
-\bigskip
-\noindent\textbf{Keywords:} Cloud computing, Huawei Cloud Stack, Virtual machines,
-Kubernetes, Infrastructure as Code, Terraform, AI recommendation, FastAPI, Next.js.
 
 \clearpage

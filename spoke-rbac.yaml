@@ -1,0 +1,12 @@
+# Changes to `backend/app/api/cluster.py` (optional)
+
+To expose self-healing status in the dashboard, find the `list_clusters` response dict and add these two fields:
+
+```python
+            "has_kubeconfig": bool(c.kubeconfig),
+            "has_ssh_key": bool(c.ssh_private_key),
+            "enable_self_healing": c.enable_self_healing,
+            "self_healing_status": c.self_healing_status,
+```
+
+No other API changes are required because `ClusterPayRequest.cluster_data` is already a plain `dict` that carries the `enable_self_healing` boolean from the frontend.

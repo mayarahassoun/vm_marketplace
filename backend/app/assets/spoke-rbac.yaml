@@ -1,0 +1,74 @@
+# Spoke cluster RBAC for the hub self-healing controller.
+#
+# Apply this manifest to every spoke cluster that the controller should watch
+# and remediate. It creates a least-privilege ServiceAccount, ClusterRole,
+# ClusterRoleBinding, and a long-lived token Secret that the hub controller
+# uses to connect.
+#
+# After applying, copy the token from the generated Secret and place it in the
+# kubeconfig Secret referenced by the ManagedCluster CR on the hub.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kubernetes-self-healing-controller-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: self-healing-controller
+  namespace: kubernetes-self-healing-controller-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: self-healing-controller-spoke
+rules:
+  # Event watching and incident correlation.
+  - apiGroups: [""]
+    resources: ["events", "pods", "pods/log", "nodes", "persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  # Workload inspection and rollout restart/rollback/resize mutations.
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale", "replicasets", "statefulsets", "statefulsets/scale", "daemonsets"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  # Job inspection and restart (delete + recreate) actions.
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "delete"]
+  # Pod-level remediation (restart-pod, cleanup-pods).
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  # Node-level remediation (cordon-and-drain).
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  # PodDisruptionBudget inspection for safe drains.
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: self-healing-controller-spoke
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: self-healing-controller-spoke
+subjects:
+  - kind: ServiceAccount
+    name: self-healing-controller
+    namespace: kubernetes-self-healing-controller-system
+---
+# Long-lived service-account token Secret. On Kubernetes 1.24+ this must be
+# created explicitly; older clusters can also use the auto-generated token.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: self-healing-controller-token
+  namespace: kubernetes-self-healing-controller-system
+  annotations:
+    kubernetes.io/service-account.name: self-healing-controller
+type: kubernetes.io/service-account-token

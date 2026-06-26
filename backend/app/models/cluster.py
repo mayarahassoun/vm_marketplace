@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -38,6 +38,12 @@ class Cluster(Base):
     # Always unique — decoupled from the user-visible `name` field so two
     # clusters with the same name don't share a state directory.
     terraform_state_dir = Column(String(255), nullable=True)
+
+    # ── Self-healing integration ─────────────────────────────────────────────
+    enable_self_healing = Column(Boolean, nullable=False, default=False)
+    # pending | registered | error
+    self_healing_status = Column(String(50), nullable=True)
+    self_healing_error = Column(Text, nullable=True)
 
     created_at = Column(
         DateTime(timezone=True),

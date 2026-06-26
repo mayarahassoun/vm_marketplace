@@ -63,3 +63,4 @@ yarn-error.log*
 # Tooling
 .vercel/
 .DS_Store
+marketplace-integration/

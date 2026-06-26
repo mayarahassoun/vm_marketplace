@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import {
   Zap,
   Shield,
@@ -12,6 +13,7 @@ import {
   MemoryStick,
 } from "lucide-react"
 import AppLogo from "@/components/AppLogo"
+import { getAuthToken } from "@/lib/api"
 
 const featuredVMs = [
   {
@@ -53,6 +55,12 @@ const featuredVMs = [
 ]
 
 export default function HomePage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    setIsLoggedIn(Boolean(getAuthToken()))
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#fafafa] text-slate-900">
       {/* HEADER */}
@@ -69,19 +77,29 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            >
-              Log in
-            </Link>
-
-            <Link
-              href="/auth/register"
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
-            >
-              Sign up
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

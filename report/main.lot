@@ -1,23 +1,24 @@
 \babel@toc {french}{}\relax 
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {1.1}{\ignorespaces Comparaison des solutions cloud en libre-service existantes}}{5}{table.caption.13}%
-\contentsline {table}{\numberline {1.2}{\ignorespaces Comparaison des méthodologies de développement}}{7}{table.caption.15}%
+\contentsline {table}{\numberline {1.1}{\ignorespaces Comparaison des solutions cloud en libre-service existantes}}{5}{table.caption.12}%
+\contentsline {table}{\numberline {1.2}{\ignorespaces Comparaison des méthodologies de développement}}{7}{table.caption.14}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {2.1}{\ignorespaces Besoins non fonctionnels}}{11}{table.caption.17}%
-\contentsline {table}{\numberline {2.2}{\ignorespaces Backlog produit}}{14}{table.caption.20}%
-\contentsline {table}{\numberline {2.3}{\ignorespaces Environnement de développement}}{15}{table.caption.22}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Besoins non fonctionnels}}{11}{table.caption.16}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Backlog produit}}{14}{table.caption.19}%
+\contentsline {table}{\numberline {2.3}{\ignorespaces Environnement de développement}}{15}{table.caption.21}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {3.1}{\ignorespaces Backlog Sprint 1}}{18}{table.caption.23}%
-\contentsline {table}{\numberline {3.2}{\ignorespaces Backlog Sprint 2}}{22}{table.caption.31}%
-\contentsline {table}{\numberline {3.3}{\ignorespaces Backlog Sprint 3}}{24}{table.caption.33}%
+\contentsline {table}{\numberline {3.1}{\ignorespaces Backlog Sprint 1}}{18}{table.caption.22}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Backlog Sprint 2}}{22}{table.caption.30}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Backlog Sprint 3}}{24}{table.caption.32}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Environnement de test}}{29}{table.caption.40}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Résultats des tests d'authentification}}{30}{table.caption.41}%
-\contentsline {table}{\numberline {4.3}{\ignorespaces Résultats des tests de provisionnement de VM}}{32}{table.caption.42}%
-\contentsline {table}{\numberline {4.4}{\ignorespaces Résultats des tests de recommandation IA}}{33}{table.caption.43}%
-\contentsline {table}{\numberline {4.5}{\ignorespaces Résultats des tests du terminal SSH}}{34}{table.caption.44}%
-\contentsline {table}{\numberline {4.6}{\ignorespaces Résultats des tests du cluster Kubernetes}}{35}{table.caption.45}%
-\contentsline {table}{\numberline {4.7}{\ignorespaces Évaluation des objectifs}}{37}{table.caption.47}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Environnement de test}}{32}{table.caption.43}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Résultats des tests d'authentification}}{33}{table.caption.44}%
+\contentsline {table}{\numberline {4.3}{\ignorespaces Résultats des tests de provisionnement de VM}}{35}{table.caption.45}%
+\contentsline {table}{\numberline {4.4}{\ignorespaces Résultats des tests de recommandation IA}}{36}{table.caption.46}%
+\contentsline {table}{\numberline {4.5}{\ignorespaces Résultats des tests du terminal SSH}}{37}{table.caption.47}%
+\contentsline {table}{\numberline {4.6}{\ignorespaces Résultats des tests du cluster k3s}}{39}{table.caption.48}%
+\contentsline {table}{\numberline {4.7}{\ignorespaces Résultats des tests d'autoguérison et de synchronisation}}{41}{table.caption.50}%
+\contentsline {table}{\numberline {4.8}{\ignorespaces Évaluation des objectifs}}{42}{table.caption.51}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {A.1}{\ignorespaces Endpoints REST de VM Marketplace}}{44}{table.A.1}%
+\contentsline {table}{\numberline {A.1}{\ignorespaces Endpoints REST de VM Marketplace}}{50}{table.A.1}%
 \addvspace {10\p@ }

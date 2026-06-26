@@ -58,7 +58,7 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-[#fafafa]">
       <Navbar active="Marketplace" backLabel="Dashboard" backHref="/dashboard" />
 
-      <div className="mx-auto max-w-[1400px] px-8 py-8">
+      <div className="mx-auto max-w-7xl px-6 py-8">
 
       {/* Topbar */}
       <div className="mb-8 flex items-center justify-between">

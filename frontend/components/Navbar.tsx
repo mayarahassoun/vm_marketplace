@@ -27,7 +27,7 @@ export default function Navbar({ active, backLabel, backHref }: Props) {
   return (
     <div className="sticky top-0 z-40">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <AppLogo />
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
@@ -55,7 +55,7 @@ export default function Navbar({ active, backLabel, backHref }: Props) {
 
       {backLabel && (
         <div className="border-b border-slate-100 bg-white px-6 py-2">
-          <div className="mx-auto flex max-w-[1400px] items-center gap-2 text-sm text-slate-500">
+          <div className="mx-auto flex max-w-7xl items-center gap-2 text-sm text-slate-500">
             <button
               onClick={() => (backHref ? router.push(backHref) : router.back())}
               className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 hover:bg-slate-100 hover:text-slate-900 transition"

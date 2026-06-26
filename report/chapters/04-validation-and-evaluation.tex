@@ -27,7 +27,7 @@ Images OS testées & Ubuntu 22.04 LTS (UUID HCS) \\
 Flavor maître & \texttt{c7n.xlarge.4} (4 vCPU, 16 Go RAM) \\
 Flavor worker & \texttt{c7n.xlarge.4} (4 vCPU, 16 Go RAM) \\
 Disque système & 50 Go SSD \\
-Version K8s provisionnée & 1.29.15 \\
+Distribution K8s provisionnée & k3s v1.31.4+k3s1 \\
 Navigateur de test & Chromium / Firefox \\
 Hôte backend & localhost:8000 (Python 3.11, FastAPI) \\
 Hôte frontend & localhost:3000 (Next.js 14) \\
@@ -131,27 +131,28 @@ TC-S04 & Fermer l'onglet du navigateur & WebSocket et canal SSH fermés côté s
 \screenshotplaceholder{Terminal SSH dans le navigateur affichant une session shell root interactive sur une VM HCS}
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{Tests du Cluster Kubernetes}
+\section{Tests du Cluster k3s}
 % ─────────────────────────────────────────────────────────────────────────────
 
 \begin{table}[H]
 \centering
-\caption{Résultats des tests du cluster Kubernetes}
+\caption{Résultats des tests du cluster k3s}
 \label{tab:k8s_tests}
 \begin{tabularx}{\linewidth}{lXll}
 \toprule
 \textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
 \midrule
 TC-K01 & Compléter l'assistant cluster + paiement & Session ID retournée & \cmark \\
-TC-K02 & Flux de progression SSE --- 6 étapes & Toutes les étapes atteignent l'état « complet » & \cmark \\
+TC-K02 & Flux de progression SSE & Toutes les étapes atteignent l'état « complet » & \cmark \\
 TC-K03 & Instance ECS maître créée sur HCS & ECS en état Running avec EIP & \cmark \\
 TC-K04 & Instance ECS worker créée (sans EIP) & ECS en état Running, IP privée uniquement & \cmark \\
-TC-K05 & Le worker peut joindre apt via le NAT maître & Paquets K8s installés sur le worker & \cmark \\
-TC-K06 & \texttt{kubectl get nodes} affiche les deux nœuds Ready & STATUS : Ready pour tous les nœuds & \cmark \\
+TC-K05 & Le worker accède à Internet via le NAT maître & Installation k3s agent réussie sur le worker & \cmark \\
+TC-K06 & \texttt{kubectl get nodes} affiche tous les nœuds Ready & STATUS : Ready pour maître et workers & \cmark \\
 TC-K07 & \texttt{kubectl cluster-info} affiche l'URL du serveur API & Serveur API à l'EIP maître:6443 & \cmark \\
 TC-K08 & Déployer nginx et passer à 3 réplicas & Tous les pods Running, service accessible & \cmark \\
 TC-K09 & Télécharger le kubeconfig depuis le tableau de bord & Fichier YAML valide ; \texttt{kubectl} se connecte & \cmark \\
 TC-K10 & Supprimer le cluster depuis le tableau de bord & terraform destroy terminé ; entrée BD supprimée & \cmark \\
+TC-K11 & Terminal SSH navigateur vers le nœud maître & Shell interactif ouvert dans xterm.js & \cmark \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -162,12 +163,12 @@ La sortie suivante a été obtenue après téléchargement du kubeconfig et exé
 \texttt{kubectl} sur le cluster provisionné :
 
 \begin{lstlisting}[language=bash,
-  caption={Sortie de kubectl get nodes sur le cluster provisionné},
+  caption={Sortie de kubectl get nodes sur le cluster k3s provisionné},
   label={lst:kubectl_nodes}]
 $ kubectl get nodes -o wide
-NAME                    STATUS   ROLES          AGE   VERSION    INTERNAL-IP
-k8s-cluster-master      Ready    control-plane  12m   v1.29.15   192.168.129.237
-k8s-cluster-worker-1    Ready    <none>         9m    v1.29.15   192.168.129.112
+NAME                     STATUS   ROLES                  AGE   VERSION
+k3s-cluster-master       Ready    control-plane,master   8m    v1.31.4+k3s1
+k3s-cluster-worker-1     Ready    <none>                 5m    v1.31.4+k3s1
 \end{lstlisting}
 
 \begin{lstlisting}[language=bash,
@@ -178,7 +179,30 @@ Kubernetes control plane is running at https://193.95.30.249:6443
 CoreDNS is running at https://193.95.30.249:6443/api/v1/namespaces/...
 \end{lstlisting}
 
-\screenshotplaceholder{kubectl get nodes --- les deux nœuds en statut Ready avec la version v1.29.15}
+\screenshotplaceholder{kubectl get nodes --- les deux nœuds k3s en statut Ready avec la version v1.31.4+k3s1}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Tests d'Autoguérison et de Synchronisation}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests d'autoguérison et de synchronisation}
+\label{tab:selfheal_sync_tests}
+\begin{tabularx}{\linewidth}{lXll}
+\toprule
+\textbf{TC} & \textbf{Cas de test} & \textbf{Attendu} & \textbf{Résultat} \\
+\midrule
+TC-SH01 & Activer l'autoguérison dans l'assistant + paiement & Option incluse dans le total (\$15/mois) & \cmark \\
+TC-SH02 & Enregistrement spoke auprès du hub après provisionnement & Statut \texttt{registered} en BD & \cmark \\
+TC-SH03 & Cluster provisionné sans autoguérison & Champ \texttt{enable\_self\_healing} = false & \cmark \\
+TC-SY01 & Sync : VM supprimée depuis la console HCS & Enregistrement VM supprimé de la BD & \cmark \\
+TC-SY02 & Sync : cluster supprimé hors plateforme & Enregistrement cluster supprimé de la BD & \cmark \\
+TC-SY03 & Import : répertoire Terraform sans fiche BD & Enregistrement stub créé avec IP et config & \cmark \\
+TC-SY04 & Import : répertoire Terraform avec état vide & Aucun enregistrement créé & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Évaluation des Objectifs}
@@ -201,8 +225,10 @@ Moteur de recommandation IA (Llama~3.1, local)
   & TC-IA01 à TC-IA05 validés ; recommandations générées en moins de 30 s & \cmark Atteint \\
 Terminal SSH navigateur et supervision Netdata
   & TC-S01 à TC-S04 validés ; Netdata installé et accessible & \cmark Atteint \\
-Provisionnement cluster K8s avec réseau pour workers privés
-  & TC-K01 à TC-K10 validés ; cluster 2 nœuds Ready sur HCS & \cmark Atteint \\
+Provisionnement cluster k3s avec réseau pour workers privés
+  & TC-K01 à TC-K11 validés ; cluster 2 nœuds Ready sur HCS & \cmark Atteint \\
+Autoguérison hub-spoke et synchronisation cloud
+  & TC-SH01 à TC-SH03 et TC-SY01 à TC-SY04 validés & \cmark Atteint \\
 Validation bout en bout sur HCS de production
   & Tous les tests réalisés sur \textit{mesrscloud.rnu.tn} & \cmark Atteint \\
 \bottomrule

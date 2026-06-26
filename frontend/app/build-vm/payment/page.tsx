@@ -21,7 +21,6 @@ import {
   useElements,
 } from "@stripe/react-stripe-js"
 import { API_URL, clearAuthToken, getAuthToken } from "@/lib/api"
-import AppLogo from "@/components/AppLogo"
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -338,19 +337,6 @@ function PaymentForm() {
 export default function BuildVMPaymentPage() {
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <AppLogo />
-
-          <div className="hidden items-center gap-10 text-sm font-medium text-slate-700 md:flex">
-            <Link href="/marketplace">Marketplace</Link>
-            <button>Pricing</button>
-            <button>Documentation</button>
-          </div>
-
-          <div className="h-8 w-8 rounded-full bg-slate-200" />
-        </div>
-      </div>
 
       <Elements stripe={stripePromise}>
         <PaymentForm />

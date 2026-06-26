@@ -11,7 +11,7 @@ import {
   clearAuthToken, getAuthToken,
   listVMs, deleteVM as deleteVMApi,
   listClusters, deleteCluster as deleteClusterApi,
-  downloadKubeconfig, downloadSshKey,
+  downloadKubeconfig, downloadSshKey, syncResources, importResources,
   type ClusterSummary,
 } from "@/lib/api"
 import SSHPasswordModal from "@/components/SSHPasswordModal"
@@ -60,6 +60,14 @@ export default function DashboardPage() {
   const [clusterToDelete, setClusterToDelete] = useState<number | null>(null)
   const [clusterDeleteLoading, setClusterDeleteLoading] = useState(false)
   const [clusterDeleteError, setClusterDeleteError] = useState<string | null>(null)
+
+  // Sync
+  const [syncing, setSyncing] = useState(false)
+  const [syncToast, setSyncToast] = useState<{ deleted_vms: number; deleted_clusters: number } | null>(null)
+
+  // Import
+  const [importing, setImporting] = useState(false)
+  const [importToast, setImportToast] = useState<{ imported_vms: number; imported_clusters: number } | null>(null)
 
   useEffect(() => {
     async function fetchAll() {
@@ -175,8 +183,107 @@ export default function DashboardPage() {
   const runningCount = vms.filter((v) => v.status === "running").length
   const monitoringReadyCount = vms.filter((v) => Boolean(v.netdata_url)).length
 
+  async function handleImport() {
+    const token = getAuthToken()
+    if (!token || importing) return
+    setImporting(true)
+    setImportToast(null)
+    try {
+      const result = await importResources(token)
+      const total = result.imported_vms.length + result.imported_clusters.length
+      if (total > 0) {
+        const [vmData, clusterData] = await Promise.all([
+          listVMs(token) as Promise<BackendVM[]>,
+          listClusters(token),
+        ])
+        setVms(vmData.map((vm) => ({
+          id: vm.id, name: vm.instance_name, image: vm.image_id,
+          status: vm.status, created: new Date(vm.created_at).toLocaleDateString(),
+          region: vm.availability_zone, ip: vm.private_ip || vm.public_ip || "N/A",
+          flavor_id: vm.flavor_id, system_disk_size: vm.system_disk_size, netdata_url: vm.netdata_url,
+        })))
+        setClusters(clusterData)
+      }
+      setImportToast({ imported_vms: result.imported_vms.length, imported_clusters: result.imported_clusters.length })
+      setTimeout(() => setImportToast(null), 6000)
+    } catch {
+      /* ignore */
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  async function handleSync() {
+    const token = getAuthToken()
+    if (!token || syncing) return
+    setSyncing(true)
+    setSyncToast(null)
+    try {
+      const result = await syncResources(token)
+      const total = result.deleted_vms.length + result.deleted_clusters.length
+      if (total > 0) {
+        // Re-fetch to get updated lists
+        const [vmData, clusterData] = await Promise.all([
+          listVMs(token) as Promise<BackendVM[]>,
+          listClusters(token),
+        ])
+        setVms(vmData.map((vm) => ({
+          id: vm.id, name: vm.instance_name, image: vm.image_id,
+          status: vm.status, created: new Date(vm.created_at).toLocaleDateString(),
+          region: vm.availability_zone, ip: vm.private_ip || vm.public_ip || "N/A",
+          flavor_id: vm.flavor_id, system_disk_size: vm.system_disk_size, netdata_url: vm.netdata_url,
+        })))
+        setClusters(clusterData)
+      }
+      setSyncToast({ deleted_vms: result.deleted_vms.length, deleted_clusters: result.deleted_clusters.length })
+      setTimeout(() => setSyncToast(null), 5000)
+    } catch {
+      /* ignore */
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#fafafa] px-8 py-8">
+
+      {/* Import toast */}
+      {importToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-xl">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+            importToast.imported_vms + importToast.imported_clusters > 0 ? "bg-violet-50" : "bg-slate-50"
+          }`}>
+            <RotateCcw className={`h-4 w-4 ${importToast.imported_vms + importToast.imported_clusters > 0 ? "text-violet-600" : "text-slate-400"}`} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Import complete</p>
+            <p className="text-xs text-slate-500">
+              {importToast.imported_vms + importToast.imported_clusters === 0
+                ? "No new resources found in the cloud."
+                : `Imported ${importToast.imported_clusters} cluster${importToast.imported_clusters !== 1 ? "s" : ""} and ${importToast.imported_vms} VM${importToast.imported_vms !== 1 ? "s" : ""} from the cloud.`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Sync toast */}
+      {syncToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-xl">
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+            syncToast.deleted_vms + syncToast.deleted_clusters > 0 ? "bg-amber-50" : "bg-green-50"
+          }`}>
+            <RotateCcw className={`h-4 w-4 ${syncToast.deleted_vms + syncToast.deleted_clusters > 0 ? "text-amber-600" : "text-green-600"}`} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Sync complete</p>
+            <p className="text-xs text-slate-500">
+              {syncToast.deleted_vms + syncToast.deleted_clusters === 0
+                ? "Everything is up to date."
+                : `Removed ${syncToast.deleted_vms} VM${syncToast.deleted_vms !== 1 ? "s" : ""} and ${syncToast.deleted_clusters} cluster${syncToast.deleted_clusters !== 1 ? "s" : ""} no longer in the cloud.`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="mb-8 flex items-center justify-end border-b border-slate-200 pb-4">
@@ -209,6 +316,22 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-5 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
+          >
+            <RotateCcw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />
+            {importing ? "Importing..." : "Import from Cloud"}
+          </button>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing..." : "Sync"}
+          </button>
           <button
             onClick={() => router.push("/marketplace")}
             className="inline-flex h-11 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900"
@@ -257,7 +380,7 @@ export default function DashboardPage() {
             <Boxes className="h-5 w-5 text-blue-500" />
           </div>
           <h3 className="mt-3 text-4xl font-semibold text-slate-900">{clusters.length}</h3>
-          <p className="mt-2 text-sm text-slate-400">K8s clusters deployed</p>
+          <p className="mt-2 text-sm text-slate-400">k3s clusters deployed</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between">
@@ -274,7 +397,7 @@ export default function DashboardPage() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Boxes className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Kubernetes Clusters</h2>
+            <h2 className="text-lg font-semibold text-slate-900">k3s Clusters</h2>
             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
               {clusters.length}
             </span>
@@ -293,7 +416,7 @@ export default function DashboardPage() {
               <Boxes className="h-6 w-6 text-slate-400" />
             </div>
             <p className="mt-3 text-sm font-medium text-slate-700">No clusters yet</p>
-            <p className="mt-1 text-xs text-slate-400">Deploy a Kubernetes cluster to manage containerised workloads.</p>
+            <p className="mt-1 text-xs text-slate-400">Deploy a k3s cluster to manage containerised workloads.</p>
             <button
               onClick={() => router.push("/build-cluster")}
               className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium hover:bg-slate-50"
@@ -668,7 +791,7 @@ export default function DashboardPage() {
       {clusterToDelete !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="w-[420px] rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-slate-900">Delete Kubernetes Cluster</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Delete k3s Cluster</h2>
             <p className="mt-3 text-sm text-slate-500">
               This will run <code className="rounded bg-slate-100 px-1">terraform destroy</code> on all cluster nodes.
               This action cannot be undone.

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronRight, HardDrive } from "lucide-react"
 import { useEffect } from "react"
 import { useBuildVM } from "../BuildVMContext"
-import AppLogo from "@/components/AppLogo"
 import BuildVMSteps from "../BuildVMSteps"
 import { VM_IMAGES } from "@/lib/api"
 
@@ -38,21 +37,6 @@ export default function BuildVMStoragePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <AppLogo />
-
-          <div className="hidden items-center gap-10 text-sm font-medium text-slate-700 md:flex">
-            <Link href="/marketplace" className="hover:text-slate-900">
-              Marketplace
-            </Link>
-            <button className="hover:text-slate-900">Pricing</button>
-            <button className="hover:text-slate-900">Documentation</button>
-          </div>
-
-          <div className="h-8 w-8 rounded-full bg-slate-200" />
-        </div>
-      </div>
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-8">

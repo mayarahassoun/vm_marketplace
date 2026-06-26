@@ -59,3 +59,8 @@ variable "ssh_public_key" {
   description = "SSH public key injected into nodes via cloud-config"
   type        = string
 }
+
+variable "self_healing_hub_ip" {
+  type    = string
+  default = ""
+}

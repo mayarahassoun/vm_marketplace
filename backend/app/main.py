@@ -13,6 +13,7 @@ from app.api.ssh import router as ssh_router
 from app.api.payment import router as payment_router
 from app.api.monitoring import router as monitoring_router
 from app.api.cluster import router as cluster_router
+from app.api.sync import router as sync_router
 from app.models import cluster  # noqa: F401 – ensures Cluster table is created
 
 
@@ -46,6 +47,7 @@ app.include_router(ssh_router)
 app.include_router(payment_router)
 app.include_router(monitoring_router)
 app.include_router(cluster_router)
+app.include_router(sync_router)
 
 
 @app.get("/")

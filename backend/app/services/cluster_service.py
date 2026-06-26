@@ -23,57 +23,6 @@ TERRAFORM_CLUSTER_STATES = Path(
     )
 )
 
-# ─── Kubernetes 1.29 installation commands (apt-based distros) ───────────────
-
-_K8S_PREREQ = """
-set -e
-export DEBIAN_FRONTEND=noninteractive
-
-# Override DNS — HCS VMs may have internal-only resolvers
-printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 114.114.114.114\\n' > /etc/resolv.conf
-
-# Disable swap permanently
-swapoff -a
-sed -i '/swap/d' /etc/fstab
-
-# Kernel modules required by containerd/K8s
-modprobe overlay
-modprobe br_netfilter
-cat > /etc/modules-load.d/k8s.conf <<EOF
-overlay
-br_netfilter
-EOF
-
-# Sysctl params (ignore warnings for unsupported keys in HCS VMs)
-cat > /etc/sysctl.d/k8s.conf <<EOF
-net.bridge.bridge-nf-call-iptables  = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward                 = 1
-EOF
-sysctl --system 2>/dev/null || true
-
-# Install containerd
-apt-get update -y
-apt-get install -y --fix-missing containerd
-
-mkdir -p /etc/containerd
-containerd config default > /etc/containerd/config.toml
-sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
-systemctl restart containerd
-systemctl enable containerd
-
-# Install kubeadm, kubelet, kubectl (K8s 1.29)
-apt-get install -y --fix-missing apt-transport-https ca-certificates curl gpg
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key \
-  | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' \
-  > /etc/apt/sources.list.d/kubernetes.list
-apt-get update -y
-apt-get install -y kubelet kubeadm kubectl
-apt-mark hold kubelet kubeadm kubectl
-systemctl enable kubelet
-"""
 
 
 def _generate_ssh_keypair() -> tuple[paramiko.RSAKey, str]:
@@ -182,9 +131,10 @@ def run_terraform_cluster(cluster_data: dict) -> dict:
         "system_disk_size": cluster_data["system_disk_size"],
         "worker_count": cluster_data["worker_count"],
         "ssh_public_key": public_key_line,
+        "self_healing_hub_ip": os.getenv("SELF_HEALING_HUB_IP", ""),
     }
 
-    missing = [k for k, v in tf_vars.items() if v in (None, "", [])]
+    missing = [k for k, v in tf_vars.items() if v in (None, "", []) and k != "self_healing_hub_ip"]
     if missing:
         raise ValueError(f"Missing Terraform variables: {missing}")
 
@@ -253,7 +203,7 @@ def install_kubernetes(
     ssh_key: paramiko.RSAKey = None,
 ) -> str:
     """
-    Bootstrap a K8s cluster. Workers are reached via the master as a jump host
+    Bootstrap a k3s cluster. Workers are reached via the master as a jump host
     (no public IP needed on worker nodes). Returns kubeconfig with public API URL.
     """
     # ── 1. Wait for VMs to finish booting ────────────────────────────────────
@@ -264,12 +214,13 @@ def install_kubernetes(
     print(f"📦 Connecting to master {master_public_ip}...")
     master_conn = _ssh_connect(master_public_ip, pkey=ssh_key)
 
-    # ── 3. Install K8s prerequisites on master ────────────────────────────────
-    print("  Installing K8s prerequisites on master...")
-    _run_ssh(master_conn, _K8S_PREREQ, timeout=600)
+    # ── 3. Fix DNS on master (HCS VMs may have internal-only resolvers) ───────
+    _run_ssh(
+        master_conn,
+        "printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 114.114.114.114\\n' > /etc/resolv.conf",
+    )
 
-    # ── 4. Enable NAT on master so workers can reach the internet ────────────
-    # Workers have private IPs only; we route their traffic through the master.
+    # ── 4. Enable NAT so workers can reach the internet via master ────────────
     if worker_private_ips:
         print("  Enabling IP masquerading on master for worker internet access...")
         master_iface = _run_ssh(
@@ -282,69 +233,59 @@ def install_kubernetes(
             f"iptables -t nat -A POSTROUTING -o {master_iface} -j MASQUERADE || true",
         )
 
-    # ── 5. Connect to workers via master (jump host) and install prereqs ──────
-    worker_conns: list[paramiko.SSHClient] = []
-    for priv_ip in worker_private_ips:
-        print(f"  Connecting to worker {priv_ip} via jump...")
-        conn = _ssh_connect_via_jump(master_conn, priv_ip, pkey=ssh_key)
-        worker_conns.append(conn)
-
-        # Route worker internet traffic through master
-        _run_ssh(
-            conn,
-            f"ip route replace default via {master_private_ip} ; "
-            f"printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf",
-        )
-        print(f"  Installing K8s prerequisites on worker {priv_ip}...")
-        _run_ssh(conn, _K8S_PREREQ, timeout=600)
-
-    # ── 5. kubeadm init on master ─────────────────────────────────────────────
-    print(f"🚀 Running kubeadm init on master ({master_private_ip})...")
-    init_cmd = (
-        f"kubeadm init "
-        f"--pod-network-cidr=10.244.0.0/16 "
-        f"--apiserver-advertise-address={master_private_ip} "
-        f"--apiserver-cert-extra-sans={master_public_ip} "
-        f"--ignore-preflight-errors=NumCPU"
-    )
-    _run_ssh(master_conn, init_cmd, timeout=300)
-
-    kubeconfig_setup = (
-        "mkdir -p $HOME/.kube && "
-        "cp -f /etc/kubernetes/admin.conf $HOME/.kube/config && "
-        "chown $(id -u):$(id -g) $HOME/.kube/config"
-    )
-    _run_ssh(master_conn, kubeconfig_setup)
-
-    # ── 6. Deploy Flannel CNI ─────────────────────────────────────────────────
-    print("🌐 Deploying Flannel CNI...")
+    # ── 5. Install k3s server on master ──────────────────────────────────────
+    print("🚀 Installing k3s server on master...")
     _run_ssh(
         master_conn,
-        "kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml",
+        f"curl -sfL https://get.k3s.io | "
+        f"INSTALL_K3S_EXEC='server --tls-san {master_public_ip} --node-external-ip {master_public_ip}' "
+        f"sh -",
+        timeout=300,
+    )
+
+    # ── 6. Wait for k3s node to be Ready ─────────────────────────────────────
+    print("  Waiting for k3s to become ready...")
+    _run_ssh(
+        master_conn,
+        "until k3s kubectl get nodes 2>/dev/null | grep -q ' Ready'; do sleep 5; done",
         timeout=120,
     )
 
-    # ── 7. Get join command and join workers ──────────────────────────────────
-    join_command = _run_ssh(
+    # ── 7. Read node token for worker joins ───────────────────────────────────
+    node_token = _run_ssh(
         master_conn,
-        "kubeadm token create --print-join-command",
+        "cat /var/lib/rancher/k3s/server/node-token",
     ).strip()
 
-    for priv_ip, conn in zip(worker_private_ips, worker_conns):
-        print(f"  Worker {priv_ip} joining cluster...")
-        _run_ssh(conn, join_command, timeout=180)
+    # ── 8. Connect to each worker via jump host and install k3s agent ─────────
+    for priv_ip in worker_private_ips:
+        print(f"  Connecting to worker {priv_ip} via jump...")
+        worker_conn = _ssh_connect_via_jump(master_conn, priv_ip, pkey=ssh_key)
 
-    # ── 8. Retrieve kubeconfig and rewrite server URL to public IP ────────────
-    raw_kubeconfig = _run_ssh(master_conn, "cat /etc/kubernetes/admin.conf")
+        _run_ssh(
+            worker_conn,
+            f"ip route replace default via {master_private_ip} ; "
+            f"printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\n' > /etc/resolv.conf",
+        )
+
+        print(f"  Installing k3s agent on worker {priv_ip}...")
+        _run_ssh(
+            worker_conn,
+            f"curl -sfL https://get.k3s.io | "
+            f"K3S_URL=https://{master_private_ip}:6443 "
+            f"K3S_TOKEN={node_token} "
+            f"sh -",
+            timeout=300,
+        )
+        worker_conn.close()
+
+    # ── 9. Retrieve kubeconfig and rewrite server URL to public IP ────────────
+    raw_kubeconfig = _run_ssh(master_conn, "cat /etc/rancher/k3s/k3s.yaml")
     kubeconfig = raw_kubeconfig.replace(
-        f"https://{master_private_ip}:6443",
+        "https://127.0.0.1:6443",
         f"https://{master_public_ip}:6443",
     )
 
-    # ── 9. Close all SSH connections ──────────────────────────────────────────
-    for conn in worker_conns:
-        conn.close()
     master_conn.close()
-
-    print("✅ Kubernetes cluster is ready.")
+    print("✅ k3s cluster is ready.")
     return kubeconfig

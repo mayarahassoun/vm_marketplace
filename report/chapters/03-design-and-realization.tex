@@ -317,14 +317,15 @@ la taille du disque et le coût estimé. La sélection d'un modèle pré-remplit
 de création de VM.
 
 % =============================================================================
-\section{Sprint 3 --- Provisionnement de Clusters Kubernetes}
+\section{Sprint 3 --- Clusters k3s, Autoguérison et Synchronisation Cloud}
 % =============================================================================
 
 \subsection{Objectif du Sprint}
 
-Concevoir et implémenter un pipeline complet de provisionnement de clusters Kubernetes
-qui initialise des clusters multi-nœuds sur HCS avec kubeadm, dans les contraintes de
-quota EIP de l'environnement cloud MESRS partagé.
+Concevoir et implémenter un pipeline complet de provisionnement de clusters k3s
+multi-nœuds sur HCS, intégrer un terminal SSH dédié aux clusters, proposer un
+contrôleur d'autoguérison en option et ajouter des mécanismes de synchronisation
+entre la base de données et l'état Terraform réel dans le cloud.
 
 \subsection{Backlog du Sprint}
 
@@ -336,18 +337,40 @@ quota EIP de l'environnement cloud MESRS partagé.
 \toprule
 \textbf{ID} & \textbf{Statut} & \textbf{Description} \\
 \midrule
-US-12 & Terminé & Configurer et payer un cluster Kubernetes \\
-US-13 & Terminé & Provisionner le cluster K8s sur HCS avec kubeadm \\
-US-14 & Terminé & Diffuser la progression du provisionnement K8s via SSE \\
+US-12 & Terminé & Configurer et payer un cluster k3s \\
+US-13 & Terminé & Provisionner le cluster k3s sur HCS via Terraform + SSH \\
+US-14 & Terminé & Diffuser la progression du provisionnement k3s via SSE \\
 US-15 & Terminé & Télécharger le kubeconfig depuis le tableau de bord \\
-US-16 & Terminé & Supprimer un cluster K8s depuis le tableau de bord \\
+US-16 & Terminé & Supprimer un cluster k3s depuis le tableau de bord \\
+US-17 & Terminé & Terminal SSH navigateur vers les nœuds du cluster \\
+US-18 & Terminé & Activer l'autoguérison du cluster (contrôleur hub-spoke) \\
+US-19 & Terminé & Synchroniser la BD avec l'état Terraform réel du cloud \\
+US-20 & Terminé & Importer dans la BD les ressources cloud non enregistrées \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\subsection{Choix de k3s comme Distribution Kubernetes}
+
+k3s~\cite{k3s_docs} est la distribution Kubernetes légère de Rancher Labs.
+Comparé à kubeadm, k3s offre plusieurs avantages décisifs dans le contexte HCS MESRS :
+
+\begin{itemize}
+  \item \textbf{Installation en une commande} : un seul script \texttt{curl | sh}
+        installe et démarre le serveur k3s (maître) ou l'agent (worker), sans étapes
+        de pré-configuration des modules noyau ni gestion de \texttt{containerd}.
+  \item \textbf{Réseau intégré} : k3s embarque Flannel CNI, supprimant l'étape
+        \texttt{kubectl apply -f flannel.yaml} séparée.
+  \item \textbf{Binaire unique} : k3s est distribué comme un binaire statique,
+        éliminant les dépendances de paquets apt et les problèmes de dépôt miroir
+        fréquents dans les environnements réseau contraints.
+  \item \textbf{Empreinte réduite} : convient aux flavors académiques de taille
+        modeste (4 vCPU, 16 Go RAM).
+\end{itemize}
+
 \subsection{Architecture du Cluster}
 
-Un cluster K8s sur HCS est composé d'un nœud maître (avec une EIP) et de $N$ nœuds
+Un cluster k3s sur HCS est composé d'un nœud maître (avec une EIP) et de $N$ nœuds
 workers (IP privée uniquement). Cette topologie asymétrique a été imposée par le quota
 EIP du projet HCS partagé MESRS : une seule EIP par cluster pouvait être allouée.
 
@@ -381,31 +404,21 @@ La figure~\ref{fig:k8s_arch} illustre l'architecture réseau du cluster.
   \node[noeud, fill=green!10]  (workerN) at (3.5,-3)  {Worker N\\IP privée uniquement};
   \node[noeud, fill=gray!10]   (backend) at (-6, 0)   {Backend\\FastAPI};
 
-  % Internet <-> Maître (EIP)
   \draw[arr] (maitre) -- node[right,font=\scriptsize]{EIP (ports 6443, 22)} (internet);
-
-  % Maître <-> Workers (subnet VPC)
   \draw[arr] (maitre) -- node[left,font=\scriptsize]{Subnet VPC} (worker1);
   \draw[arr] (maitre) -- node[right,font=\scriptsize]{Subnet VPC} (workerN);
-
-  % NAT
   \draw[darr] (worker1) to[bend left=20]
     node[left,font=\tiny]{passerelle par défaut = IP privée maître} (maitre);
   \draw[darr] (maitre) to[bend left=10]
     node[right,font=\tiny]{MASQUERADE} (internet);
-
-  % Backend -> Maître (SSH direct)
   \draw[arr] (backend) -- node[above,font=\scriptsize]{SSH (clé RSA)} (maitre);
-
-  % Backend -> Worker (jump)
   \draw[darr] (backend) to[bend right=20]
     node[below,font=\tiny]{SSH via hôte de rebond} (worker1);
 
-  % Labels K8s
-  \node[font=\tiny, anchor=south, align=center] at (0,-0.6) {kubeadm init\\Flannel CNI};
-  \node[font=\tiny, anchor=north] at (-3.5,-4.2) {kubeadm join};
+  \node[font=\tiny, anchor=south, align=center] at (0,-0.6) {k3s server\\Flannel intégré};
+  \node[font=\tiny, anchor=north] at (-3.5,-4.2) {k3s agent};
 \end{tikzpicture}
-\caption{Architecture réseau du cluster Kubernetes sur HCS}
+\caption{Architecture réseau du cluster k3s sur HCS}
 \label{fig:k8s_arch}
 \end{figure}
 
@@ -430,55 +443,54 @@ via Paramiko :
                    label={lst:keygen}]
 def _generate_ssh_keypair():
     key = paramiko.RSAKey.generate(2048)
-    public_key_line = f"ssh-rsa {key.get_base64()} k8s-cluster"
+    public_key_line = f"ssh-rsa {key.get_base64()} k3s-cluster"
     return key, public_key_line
 \end{lstlisting}
 
-La clé publique est transmise à Terraform en tant que variable \texttt{ssh\_public\_key}
-et injectée dans les nœuds maître et workers via le format \texttt{cloud-config} :
+La clé publique est injectée dans les nœuds via \texttt{cloud-config} :
 
 \begin{lstlisting}[language=bash, caption={user\_data cloud-init pour l'injection de clé SSH},
                    label={lst:cloudinit}]
 #cloud-config
 disable_root: false
 ssh_authorized_keys:
-  - ssh-rsa AAAA... k8s-cluster
+  - ssh-rsa AAAA... k3s-cluster
 \end{lstlisting}
 
-Cela s'est avéré nécessaire car les images Ubuntu 22.04 sur HCS imposent
-\texttt{PasswordAuthentication no} au niveau système, rejetant toute connexion SSH
-par mot de passe quelles que soient les modifications de \texttt{sshd\_config}
-tentées à l'exécution.
+\subsection{Séquence d'Initialisation k3s}
 
-\subsection{Séquence d'Initialisation Kubernetes}
-
-La fonction \texttt{install\_kubernetes()} dans
+La fonction \texttt{install\_k3s()} dans
 \texttt{backend/app/services/cluster\_service.py} exécute les étapes suivantes via SSH :
 
 \begin{enumerate}
   \item \textbf{Attente de 120 s} pour que les VM terminent cloud-init et deviennent
         joignables.
   \item \textbf{Connexion au maître} via SSH direct en utilisant la clé RSA provisionnée.
-  \item \textbf{Installation des prérequis sur le maître :} désactivation du swap,
-        chargement des modules noyau (\texttt{overlay}, \texttt{br\_netfilter}),
-        configuration des paramètres sysctl, installation de \texttt{containerd} et
-        de \texttt{kubeadm/kubelet/kubectl} (K8s 1.29).
   \item \textbf{Activation du NAT sur le maître :} détection de l'interface réseau
         par défaut, activation du \texttt{ip\_forward} et ajout d'une règle
         MASQUERADE \texttt{iptables}.
+  \item \textbf{Installation de k3s server sur le maître :} une seule commande
+        installe et démarre le serveur k3s avec Flannel CNI intégré.
+\begin{lstlisting}[language=bash, caption={Installation k3s server sur le nœud maître},
+                   label={lst:k3s_server}]
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC=\
+  "server --tls-san <EIP_MAITRE> --node-ip <IP_PRIVEE>" sh -
+\end{lstlisting}
+  \item \textbf{Récupération du token de jonction} depuis
+        \texttt{/var/lib/rancher/k3s/server/node-token} sur le maître.
   \item \textbf{Connexion aux workers via hôte de rebond} (canal \texttt{direct-tcpip}
         Paramiko à travers le maître).
   \item \textbf{Configuration des workers :} remplacement de la passerelle par défaut
         par l'IP privée du maître, remplacement du DNS (\texttt{/etc/resolv.conf})
-        par les DNS Google (8.8.8.8), installation des prérequis.
-  \item \textbf{kubeadm init sur le maître} avec le CIDR pod \texttt{10.244.0.0/16},
-        en annonçant l'IP privée et en ajoutant l'IP publique comme
-        \texttt{--apiserver-cert-extra-sans} pour l'accès externe.
-  \item \textbf{Déploiement du CNI Flannel} via \texttt{kubectl apply}.
-  \item \textbf{Génération de la commande join} et rattachement de tous les workers
-        au cluster.
-  \item \textbf{Récupération du kubeconfig} et réécriture de l'URL du serveur API
-        de l'IP privée vers l'EIP du maître.
+        par les DNS Google (8.8.8.8).
+  \item \textbf{Installation de k3s agent sur chaque worker :}
+\begin{lstlisting}[language=bash, caption={Installation k3s agent sur un nœud worker},
+                   label={lst:k3s_agent}]
+curl -sfL https://get.k3s.io | K3S_URL=https://<IP_PRIVEE_MAITRE>:6443 \
+  K3S_TOKEN=<TOKEN> sh -
+\end{lstlisting}
+  \item \textbf{Récupération du kubeconfig} depuis \texttt{/etc/rancher/k3s/k3s.yaml}
+        et réécriture de l'URL du serveur API de l'IP privée vers l'EIP du maître.
 \end{enumerate}
 
 \subsection{Solution Réseau : Maître comme Passerelle NAT}
@@ -524,28 +536,133 @@ via la règle MASQUERADE du maître vers Internet.
 
 L'assistant de configuration du cluster (\texttt{frontend/app/build-cluster/}) collecte
 le nom du cluster, les flavors du maître et des workers, le nombre de workers, l'image
-OS et la taille du disque. Après le paiement via Stripe, la progression du
-provisionnement est diffusée vers le frontend via un endpoint SSE dédié
-(\texttt{GET /api/clusters/progress/:session\_id}) avec six étapes labelisées.
+OS, la taille du disque et le mot de passe administrateur (avec confirmation). Après le
+paiement via Stripe, la progression du provisionnement est diffusée vers le frontend
+via un endpoint SSE dédié (\texttt{GET /api/clusters/progress/:session\_id}).
 
-\screenshotplaceholder{Assistant de provisionnement du cluster Kubernetes}
+\screenshotplaceholder{Assistant de provisionnement du cluster k3s --- configuration des nœuds maître et workers}
 
-\screenshotplaceholder{Flux de progression SSE du cluster K8s --- les 6 étapes sont complètes}
+\screenshotplaceholder{Flux de progression SSE du cluster k3s --- les étapes sont complètes}
 
 Une fois le cluster en statut \texttt{running}, le tableau de bord l'affiche aux côtés
 des VM ordinaires avec un bouton « Télécharger le kubeconfig ».
 
-\screenshotplaceholder{Tableau de bord affichant un cluster Kubernetes en cours d'exécution avec l'IP du maître et le nombre de workers}
+\screenshotplaceholder{Tableau de bord affichant un cluster k3s en cours d'exécution avec l'IP du maître et le nombre de workers}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Terminal SSH pour Clusters}
+% ─────────────────────────────────────────────────────────────────────────────
+
+La page de gestion de clés SSH des clusters (\texttt{frontend/app/ssh/cluster/})
+permet à l'utilisateur d'accéder à un terminal interactif vers le nœud maître ou
+tout nœud worker de son cluster, directement depuis le navigateur.
+
+L'implémentation réutilise la même infrastructure WebSocket-xterm.js développée
+pour les VM individuelles au Sprint 2. La connexion au maître s'effectue via SSH
+direct ; la connexion aux workers transite par le maître comme hôte de rebond
+(\texttt{transport.open\_channel("direct-tcpip",...)} Paramiko), en utilisant la
+clé RSA privée stockée en base de données lors du provisionnement.
+
+\screenshotplaceholder{Terminal SSH dans le navigateur --- session interactive sur le nœud maître d'un cluster k3s}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Contrôleur d'Autoguérison (Self-Healing)}
+% ─────────────────────────────────────────────────────────────────────────────
+
+La plateforme propose en option payante (\$15/mois) un contrôleur d'autoguérison
+basé sur un modèle hub-spoke. Lorsque l'utilisateur active cette option dans
+l'assistant de cluster, un processus d'enregistrement est déclenché à la fin du
+provisionnement.
+
+\paragraph{Architecture hub-spoke.}
+\begin{itemize}
+  \item \textbf{Hub :} un contrôleur centralisé déjà déployé en production
+        surveille en permanence les clusters qui lui sont enregistrés.
+  \item \textbf{Spoke :} le cluster k3s nouvellement provisionné est enregistré
+        auprès du hub via la fonction \texttt{register\_spoke\_with\_hub()} du
+        service \texttt{backend/app/services/self\_healing\_service.py}.
+\end{itemize}
+
+\paragraph{Processus d'enregistrement.}
+Après l'initialisation réussie de k3s, le service d'autoguérison :
+\begin{enumerate}
+  \item Applique le manifest RBAC \texttt{spoke-rbac.yaml} sur le cluster cible
+        (création d'un \texttt{ClusterRole} et d'un \texttt{ClusterRoleBinding}
+        accordant au hub les droits de lecture sur les ressources de charge de travail).
+  \item Envoie les coordonnées du cluster (IP maître, kubeconfig, credentials)
+        au hub via un appel HTTP authentifié.
+  \item Met à jour la colonne \texttt{self\_healing\_status} du cluster en base
+        de données (\texttt{pending} → \texttt{registered} ou \texttt{error}).
+\end{enumerate}
+
+Le statut d'enregistrement est visible dans le tableau de bord et dans l'assistant
+cluster. En cas d'erreur d'enregistrement, le message est exposé dans le champ
+\texttt{self\_healing\_error} et affiché à l'utilisateur.
+
+\screenshotplaceholder{Option autoguérison dans l'assistant de cluster --- carte d'activation avec badge \textit{Recommandé} et récapitulatif de prix}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Synchronisation et Import depuis le Cloud}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Deux problèmes de cohérence entre la base de données et l'état Terraform réel ont
+été identifiés lors de la validation :
+
+\begin{itemize}
+  \item Des VM ou clusters supprimés directement depuis la console HCS (hors
+        plateforme) continuent d'apparaître dans le tableau de bord.
+  \item Des clusters provisionnés manuellement via Terraform restent invisibles dans
+        la plateforme tant qu'ils n'ont pas de fiche en base de données.
+\end{itemize}
+
+Un module de synchronisation (\texttt{backend/app/api/sync.py}) a été développé
+pour résoudre ces deux cas.
+
+\paragraph{Synchronisation (suppression des enregistrements obsolètes).}
+L'endpoint \texttt{POST /api/sync} parcourt tous les enregistrements VM et Cluster
+de l'utilisateur en base de données. Pour chaque enregistrement, la fonction
+\texttt{\_terraform\_still\_exists()} vérifie l'existence et la cohérence du fichier
+\texttt{terraform.tfstate} dans le répertoire d'état correspondant :
+
+\begin{lstlisting}[language=python,
+  caption={Détection d'une ressource cloud supprimée via l'état Terraform},
+  label={lst:sync_check}]
+def _terraform_still_exists(state_dir: Path) -> bool:
+    tfstate = state_dir / "terraform.tfstate"
+    if not tfstate.exists():
+        return False
+    resources = json.loads(tfstate.read_text())["resources"]
+    live = sum(len(r.get("instances", [])) for r in resources)
+    return live > 0
+\end{lstlisting}
+
+Si aucune instance vivante n'est trouvée, l'enregistrement est supprimé de la
+base de données.
+
+\paragraph{Import (découverte de ressources non enregistrées).}
+L'endpoint \texttt{POST /api/sync/import} parcourt les répertoires
+\texttt{terraform\_states/} (VM) et \texttt{terraform\_cluster\_states/} (clusters).
+Pour chaque répertoire dont l'état Terraform est actif mais qui n'a pas
+d'enregistrement en base de données, un enregistrement de substitution est créé
+en lisant les variables \texttt{terraform.auto.tfvars.json} et les outputs du
+fichier \texttt{terraform.tfstate}.
+
+Ces deux fonctionnalités sont accessibles depuis le tableau de bord via les boutons
+\textbf{Sync} et \textbf{Importer depuis le cloud}.
+
+\screenshotplaceholder{Tableau de bord --- boutons Sync et Import avec notifications de résultat}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Conclusion}
 % ─────────────────────────────────────────────────────────────────────────────
 
 Trois sprints itératifs ont livré une plateforme cloud en libre-service complète :
-le Sprint 1 a établi le cœur du provisionnement de VM ; le Sprint 2 a ajouté la
-recommandation IA, l'accès SSH et la supervision ; le Sprint 3 a résolu le défi
-non trivial du provisionnement de clusters Kubernetes dans les contraintes de quota
-EIP de l'environnement partagé MESRS. Le schéma maître-comme-passerelle-NAT,
-nécessitant un remplacement du \texttt{source\_dest\_check} au niveau Terraform,
-a été la solution architecturale clé. Le chapitre suivant valide la plateforme au
-regard de ses objectifs initiaux.
+le Sprint 1 a établi le cœur du provisionnement de VM avec paiement et suivi SSE ;
+le Sprint 2 a ajouté la recommandation IA, l'accès SSH et la supervision Netdata ;
+le Sprint 3 a résolu le provisionnement de clusters k3s dans les contraintes de quota
+EIP de l'environnement partagé MESRS, y ajoutant le terminal SSH pour clusters, un
+contrôleur d'autoguérison hub-spoke et des outils de réconciliation de l'état cloud.
+Le schéma maître-comme-passerelle-NAT avec \texttt{source\_dest\_check=false} au
+niveau Terraform, et le choix de k3s pour sa simplicité d'installation dans un réseau
+contraint, constituent les décisions architecturales clés du sprint. Le chapitre
+suivant valide la plateforme au regard de ses objectifs initiaux.

@@ -2,23 +2,27 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getAuthToken } from "@/lib/api"
+import { getAuthToken, clearAuthToken, getCurrentUser } from "@/lib/api"
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [authorized, setAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const hasToken = Boolean(getAuthToken())
-      setAuthorized(hasToken)
+    const token = getAuthToken()
 
-      if (!hasToken) {
+    if (!token) {
+      router.push("/auth/login")
+      return
+    }
+
+    // Validate the token is still accepted by the backend
+    getCurrentUser(token)
+      .then(() => setAuthorized(true))
+      .catch(() => {
+        clearAuthToken()
         router.push("/auth/login")
-      }
-    })
-
-    return () => cancelAnimationFrame(frame)
+      })
   }, [router])
 
   if (authorized !== true) {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft, ArrowRight, Boxes, CheckCircle2, Cpu,
   Download, Globe, HardDrive, Loader2, Network,
-  Server, ShieldCheck, Terminal,
+  Server, ShieldCheck, Terminal, Zap, RefreshCw, Bell,
 } from "lucide-react"
 import { loadStripe } from "@stripe/stripe-js"
 import {
@@ -271,7 +271,7 @@ function ProgressView({ sessionId }: { sessionId: string }) {
             </h1>
             <p className="text-sm text-slate-500">
               {done
-                ? "Your Kubernetes cluster is up and running."
+                ? "Your k3s cluster is up and running."
                 : hasError
                 ? "An error occurred. Check details below."
                 : "This takes 10–15 minutes. We'll email you when it's ready."}
@@ -376,7 +376,7 @@ export default function BuildClusterPage() {
 
   // Step 1
   const [clusterName, setClusterName] = useState(
-    () => `k8s-cluster-${Math.random().toString(36).slice(2, 7)}`
+    () => `k3s-cluster-${Math.random().toString(36).slice(2, 7)}`
   )
   const [profile, setProfile] = useState(PROFILES[0])
   const [workerCount, setWorkerCount] = useState(2)
@@ -386,13 +386,16 @@ export default function BuildClusterPage() {
   const [masterFlavorId, setMasterFlavorId] = useState(MASTER_FLAVORS[0].id)
   const [workerFlavorId, setWorkerFlavorId] = useState(WORKER_FLAVORS[1].id)
   const [diskSize, setDiskSize] = useState(50)
+  const [enableSelfHealing, setEnableSelfHealing] = useState(false)
 
   // Step 3
   const [securityGroupId, setSecurityGroupId] = useState("3953708c-a708-435d-ab3c-6ef2c0ae0388")
   const [subnetId, setSubnetId] = useState("47a8cd69-519b-45fe-845b-23704f01ace6")
   const [az, setAz] = useState("tn-global-1a")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const passwordTypes = password.length > 0 ? [
     /[a-z]/.test(password),
     /[A-Z]/.test(password),
@@ -403,11 +406,18 @@ export default function BuildClusterPage() {
   const passwordComplexOk = passwordTypes >= 3
   const passwordValid = passwordLenOk && passwordComplexOk
   const passwordError = password.length > 0 && !passwordValid
+  const passwordsMatch = password === confirmPassword
+  const confirmError = confirmPassword.length > 0 && !passwordsMatch
+
+  const SELF_HEALING_PRICE = 15
 
   const masterFlavor = MASTER_FLAVORS.find((f) => f.id === masterFlavorId) ?? MASTER_FLAVORS[0]
   const workerFlavor = WORKER_FLAVORS.find((f) => f.id === workerFlavorId) ?? WORKER_FLAVORS[1]
   const selectedImage = K8S_IMAGES.find((i) => i.id === imageId)
-  const totalPrice = masterFlavor.price + workerFlavor.price * workerCount
+  const totalPrice =
+    masterFlavor.price +
+    workerFlavor.price * workerCount +
+    (enableSelfHealing ? SELF_HEALING_PRICE : 0)
 
   const clusterData = {
     cluster_name: clusterName,
@@ -421,6 +431,7 @@ export default function BuildClusterPage() {
     system_disk_type: "SSD",
     system_disk_size: diskSize,
     worker_count: workerCount,
+    enable_self_healing: enableSelfHealing,
   }
 
   if (sessionId) {
@@ -478,7 +489,7 @@ export default function BuildClusterPage() {
                 <input
                   value={clusterName}
                   onChange={(e) => setClusterName(e.target.value.replace(/\s+/g, "-").toLowerCase())}
-                  placeholder="my-k8s-cluster"
+                  placeholder="my-k3s-cluster"
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
                 />
                 <p className="mt-1 text-xs text-slate-400">Lowercase letters, numbers and hyphens only.</p>
@@ -548,7 +559,7 @@ export default function BuildClusterPage() {
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">Operating System</label>
                 <p className="mb-3 text-xs text-slate-400">
-                  Only Debian-based distros are supported (required for kubeadm).
+                  Only Debian-based distros are supported (required for k3s).
                 </p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {K8S_IMAGES.map((img) => (
@@ -734,21 +745,53 @@ export default function BuildClusterPage() {
                 </div>
                 {password.length > 0 && !passwordLenOk && (
                   <p className="mt-1 text-xs text-red-500">
-                    Entre 8 et 26 caractères ({password.length} actuellement).
+                    Must be 8–26 characters ({password.length} currently).
                   </p>
                 )}
                 {password.length > 0 && passwordLenOk && !passwordComplexOk && (
                   <p className="mt-1 text-xs text-red-500">
-                    Doit contenir au moins 3 types parmi : minuscules, majuscules, chiffres, caractères spéciaux. ({passwordTypes}/3)
+                    Must contain at least 3 of: lowercase, uppercase, digits, special characters. ({passwordTypes}/3)
                   </p>
                 )}
                 {passwordValid && (
-                  <p className="mt-1 text-xs text-green-600">✓ Mot de passe valide</p>
+                  <p className="mt-1 text-xs text-green-600">✓ Password is valid</p>
                 )}
                 {password.length === 0 && (
                   <p className="mt-1 text-xs text-slate-400">
-                    8–26 caractères, 3 types minimum (ex : <code>Admin@2026</code>)
+                    8–26 characters, 3 types minimum (e.g. <code>Admin@2026</code>)
                   </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your password"
+                    className={`w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-4 ${
+                      confirmError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                        : passwordsMatch && confirmPassword.length > 0
+                        ? "border-green-300 focus:border-green-400 focus:ring-green-100"
+                        : "border-slate-200 focus:border-slate-400 focus:ring-slate-100"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="absolute right-3 top-3 text-xs text-slate-400 hover:text-slate-700"
+                  >
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {confirmError && (
+                  <p className="mt-1 text-xs text-red-500">Passwords do not match.</p>
+                )}
+                {passwordsMatch && confirmPassword.length > 0 && passwordValid && (
+                  <p className="mt-1 text-xs text-green-600">✓ Passwords match</p>
                 )}
               </div>
             </div>
@@ -762,7 +805,7 @@ export default function BuildClusterPage() {
               </button>
               <button
                 onClick={() => setStep(4)}
-                disabled={!subnetId.trim() || !securityGroupId.trim() || !passwordValid}
+                disabled={!subnetId.trim() || !securityGroupId.trim() || !passwordValid || !passwordsMatch || !confirmPassword}
                 className="inline-flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
               >
                 Review <ArrowRight className="h-4 w-4" />
@@ -788,6 +831,70 @@ export default function BuildClusterPage() {
                 <ReviewItem icon={<Terminal className="h-4 w-4 text-slate-400" />} label="Total Nodes"   value={`1 master + ${workerCount} worker${workerCount > 1 ? "s" : ""}`} />
               </div>
 
+              {/* Self-healing card */}
+              <button
+                type="button"
+                onClick={() => setEnableSelfHealing((v) => !v)}
+                className={`mt-6 w-full rounded-2xl border-2 p-5 text-left transition-all duration-200 focus:outline-none ${
+                  enableSelfHealing
+                    ? "border-black bg-black text-white shadow-lg"
+                    : "border-slate-200 bg-white hover:border-slate-400 hover:shadow-sm"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                      enableSelfHealing ? "bg-white/20" : "bg-emerald-50"
+                    }`}>
+                      <ShieldCheck className={`h-5 w-5 ${enableSelfHealing ? "text-white" : "text-emerald-600"}`} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${enableSelfHealing ? "text-white" : "text-slate-900"}`}>
+                          Self-Healing Controller
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          enableSelfHealing ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          Recommended
+                        </span>
+                      </div>
+                      <p className={`mt-1 text-xs leading-5 ${enableSelfHealing ? "text-white/70" : "text-slate-500"}`}>
+                        Automatically detect and remediate cluster incidents without manual intervention.
+                      </p>
+                      <div className={`mt-3 grid grid-cols-3 gap-2`}>
+                        {[
+                          { icon: <Zap className="h-3 w-3" />, label: "Auto-recovery" },
+                          { icon: <RefreshCw className="h-3 w-3" />, label: "Self-restart" },
+                          { icon: <Bell className="h-3 w-3" />, label: "Alerting" },
+                        ].map(({ icon, label }) => (
+                          <div key={label} className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium ${
+                            enableSelfHealing ? "bg-white/15 text-white" : "bg-slate-100 text-slate-600"
+                          }`}>
+                            {icon}
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    {/* Toggle pill */}
+                    <div className={`relative h-6 w-11 rounded-full transition-colors ${
+                      enableSelfHealing ? "bg-white/30" : "bg-slate-200"
+                    }`}>
+                      <div className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-all duration-200 ${
+                        enableSelfHealing ? "left-5 bg-white" : "left-0.5 bg-white"
+                      }`} />
+                    </div>
+                    <span className={`text-sm font-bold ${enableSelfHealing ? "text-white" : "text-slate-900"}`}>
+                      +${SELF_HEALING_PRICE}/mo
+                    </span>
+                  </div>
+                </div>
+              </button>
+
               <div className="mt-8 rounded-xl border border-slate-100 bg-slate-50 p-5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Master node</span>
@@ -797,6 +904,12 @@ export default function BuildClusterPage() {
                   <span className="text-slate-500">Workers × {workerCount}</span>
                   <span className="font-medium">${workerFlavor.price * workerCount}/mo</span>
                 </div>
+                {enableSelfHealing && (
+                  <div className="mt-2 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Self-healing</span>
+                    <span className="font-medium">${SELF_HEALING_PRICE}/mo</span>
+                  </div>
+                )}
                 <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
                   <span className="font-semibold text-slate-900">Total</span>
                   <span className="text-2xl font-bold text-slate-900">

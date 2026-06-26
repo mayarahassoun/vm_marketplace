@@ -5,6 +5,7 @@ import {
   Settings,
 } from "lucide-react"
 import Link from "next/link"
+import AppLogo from "@/components/AppLogo"
 
 export default function DashboardLayout({
   children,
@@ -15,12 +16,12 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-[#fafafa]">
 
       {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-200 bg-white px-6 py-8">
+      <aside className="w-64 shrink-0 border-r border-slate-200 bg-white px-6 py-8">
 
         {/* Logo */}
-        <h2 className="mb-8 text-2xl font-semibold text-slate-900">
-          VM Marketplace
-        </h2>
+        <div className="mb-8">
+          <AppLogo />
+        </div>
 
         {/* Navigation */}
         <nav className="space-y-2">
@@ -61,7 +62,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1 overflow-auto">
         {children}
       </main>
 

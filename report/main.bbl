@@ -355,6 +355,28 @@
       \field{note}{Accessed: 2026-06-01}
       \field{title}{Netdata Documentation}
     \endentry
+    \entry{k3s_docs}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=b3ef4ad48a14e71f147f78df7335aa9a}{%
+           family={{Rancher Labs (SUSE)}},
+           familyi={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{fullhash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{fullhashraw}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{bibnamehash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{authorbibnamehash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{authornamehash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{authorfullhash}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \strng{authorfullhashraw}{b3ef4ad48a14e71f147f78df7335aa9a}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://k3s.io}}
+      \field{note}{Accessed: 2026-06-15}
+      \field{title}{k3s --- Lightweight Kubernetes}
+    \endentry
   \enddatalist
 \endrefsection
 \endinput

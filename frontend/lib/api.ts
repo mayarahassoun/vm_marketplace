@@ -4,10 +4,13 @@
   export const WS_URL =
     process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000"
 
+  const TOKEN_KEY = "auth_token"
+
   export function getAuthToken() {
     if (typeof window === "undefined") return null
-
+    // Check the canonical key first, then legacy keys written by older builds
     return (
+      localStorage.getItem(TOKEN_KEY) ||
       localStorage.getItem("token") ||
       localStorage.getItem("access_token") ||
       localStorage.getItem("authToken")
@@ -15,11 +18,15 @@
   }
 
   export function saveAuthToken(token: string) {
-    localStorage.setItem("token", token)
-    localStorage.setItem("access_token", token)
+    localStorage.setItem(TOKEN_KEY, token)
+    // Remove legacy keys so old copies don't linger
+    localStorage.removeItem("token")
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("authToken")
   }
 
   export function clearAuthToken() {
+    localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem("token")
     localStorage.removeItem("access_token")
     localStorage.removeItem("authToken")
@@ -167,6 +174,32 @@
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) throw new Error("Failed to delete cluster")
+    return res.json()
+  }
+
+  export async function syncResources(token: string): Promise<{
+    deleted_vms: { id: number; name: string }[]
+    deleted_clusters: { id: number; name: string }[]
+  }> {
+    const res = await fetch(`${API_URL}/sync`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.status === 401) throw new Error("UNAUTHORIZED")
+    if (!res.ok) throw new Error("Sync failed")
+    return res.json()
+  }
+
+  export async function importResources(token: string): Promise<{
+    imported_vms: { id: number; name: string; public_ip: string | null }[]
+    imported_clusters: { id: number; name: string; master_ip: string | null }[]
+  }> {
+    const res = await fetch(`${API_URL}/sync/import`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.status === 401) throw new Error("UNAUTHORIZED")
+    if (!res.ok) throw new Error("Import failed")
     return res.json()
   }
 
